@@ -1,3 +1,4 @@
 /build/
+/.lock-wscript
 heapdump-*.log
 heapdump-*.heapsnapshot
