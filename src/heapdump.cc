@@ -90,7 +90,7 @@ void AsyncEvent(uv_async_t* handle, int status)
 
   HeapStatistics stats;
   V8::GetHeapStatistics(&stats);
-  fprintf(fp, "version :1.0\n");
+  fprintf(fp, "version: 1.0\n");
 #define X(attr) fprintf(fp, #attr ": %zu\n", stats.attr())
   X(total_heap_size);
   X(total_heap_size_executable);
@@ -101,7 +101,7 @@ void AsyncEvent(uv_async_t* handle, int status)
 
   snprintf(filename,
            sizeof(filename),
-           "heapdump-%u.%u.json",
+           "heapdump-%u.%u.heapsnapshot",
            static_cast<unsigned int>(tv.tv_sec),
            static_cast<unsigned int>(tv.tv_usec));
   fp = fopen(filename, "w");
