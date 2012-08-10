@@ -1,0 +1,19 @@
+{
+  "name": "heapdump",
+  "main": "heapdump",
+  "version": "0.0.1",
+  "description": "Make a dump of the V8 heap for later inspection.",
+  "homepage": "https://github.com/bnoordhuis/node-heapdump",
+  "author": {
+    "name": "Ben Noordhuis",
+    "email": "info@bnoordhuis.nl",
+    "url": "http://bnoordhuis.nl/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/bnoordhuis/node-heapdump.git"
+  },
+  "engines": {
+    "node": ">=0.6.0"
+  }
+}
