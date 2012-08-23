@@ -1,3 +1,4 @@
+[![build status](https://secure.travis-ci.org/bnoordhuis/node-heapdump.png)](http://travis-ci.org/bnoordhuis/node-heapdump)
 node-heapdump
 ===
 
