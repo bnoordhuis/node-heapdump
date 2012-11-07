@@ -17,10 +17,10 @@ Load the add-on in your application:
 
     require('heapdump');
 
-The module does not export any properties. Now send the process a SIGUSR2
+The module does not export any properties. Now send the node process a SIGUSR2
 signal:
 
-    $ pkill -USR2 node
+    $ kill -USR2 <pid>
 
 A heapdump-xxxx.xxxx.heapsnapshot is written to the application's current
 directory.
