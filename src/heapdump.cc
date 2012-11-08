@@ -14,27 +14,47 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include "node.h"
-#include "node_version.h"
+#include "heapdump.h"
 
+#include "node.h"
 #include "uv.h"
 #include "v8.h"
 #include "v8-profiler.h"
 
 #include <stdio.h>
+#include <stdarg.h>
 #include <stdlib.h>
-#include <string.h>
-#include <signal.h>
 #include <assert.h>
 
-#include <unistd.h>
-#include <sys/time.h>
+using v8::Arguments;
+using v8::FunctionTemplate;
+using v8::Handle;
+using v8::HandleScope;
+using v8::HeapProfiler;
+using v8::HeapSnapshot;
+using v8::HeapStatistics;
+using v8::Object;
+using v8::OutputStream;
+using v8::String;
+using v8::Undefined;
+using v8::V8;
+using v8::Value;
 
-namespace {
+namespace
+{
 
-using namespace v8;
-
-uv_async_t async_handle;
+#if defined(_WIN32)
+// Emulate snprintf() on windows, _snprintf() doesn't zero-terminate the buffer
+// on overflow.
+int snprintf(char* buf, unsigned int len, const char* fmt, ...) {
+  va_list ap;
+  va_start(ap, fmt);
+  int n = _vsprintf_p(buf, len, fmt, ap);
+  if (len) buf[len - 1] = '\0';
+  va_end(ap);
+  return n;
+}
+#endif
 
 class FileOutputStream: public OutputStream
 {
@@ -67,38 +87,44 @@ private:
   FILE* stream_;
 };
 
-void SignalHandler(int signum)
+Handle<Value> WriteSnapshot(const Arguments& args)
 {
-  if (uv_async_send(&async_handle)) abort();
+  heapdump::WriteSnapshot();
+  return Undefined();
 }
 
-void AsyncEvent(uv_async_t* handle, int status)
+void Init(Handle<Object> obj)
 {
-  assert(handle == &async_handle);
-  if (fork() != 0) return;
+  HandleScope scope;
+  heapdump::PlatformInit();
+  obj->Set(String::New("writeSnapshot"),
+           FunctionTemplate::New(WriteSnapshot)->GetFunction());
+}
 
-  // Stop C-c to main process from killing us.
-  struct sigaction sa;
-  memset(&sa, 0, sizeof(sa));
-  sa.sa_handler = SIG_IGN;
-  if (sigaction(SIGINT, &sa, NULL)) abort();
+NODE_MODULE(heapdump, Init)
 
-  timeval tv;
-  if (gettimeofday(&tv, NULL)) abort();
+} // namespace anonymous
+
+
+namespace heapdump
+{
+
+void WriteSnapshotHelper()
+{
+  uint64_t now = uv_hrtime();
+  unsigned long sec = static_cast<unsigned long>(now / 1000000);
+  unsigned long usec = static_cast<unsigned long>(now % 1000000);
 
   char filename[256];
-  snprintf(filename,
-           sizeof(filename),
-           "heapdump-%u.%u.log",
-           static_cast<unsigned int>(tv.tv_sec),
-           static_cast<unsigned int>(tv.tv_usec));
+  snprintf(filename, sizeof(filename), "heapdump-%lu.%lu.log", sec, usec);
   FILE* fp = fopen(filename, "w");
-  if (fp == NULL) abort();
+  if (fp == NULL) return;
 
   HeapStatistics stats;
   V8::GetHeapStatistics(&stats);
   fprintf(fp, "version: 1.0\n");
-#define X(attr) fprintf(fp, #attr ": %zu\n", stats.attr())
+#define X(attr)                                                               \
+  fprintf(fp, #attr ": %lu\n", static_cast<unsigned long>(stats.attr()))
   X(total_heap_size);
   X(total_heap_size_executable);
   X(used_heap_size);
@@ -108,37 +134,16 @@ void AsyncEvent(uv_async_t* handle, int status)
 
   snprintf(filename,
            sizeof(filename),
-           "heapdump-%u.%u.heapsnapshot",
-           static_cast<unsigned int>(tv.tv_sec),
-           static_cast<unsigned int>(tv.tv_usec));
+           "heapdump-%lu.%lu.heapsnapshot",
+           sec,
+           usec);
   fp = fopen(filename, "w");
-  if (fp == NULL) abort();
+  if (fp == NULL) return;
 
   const HeapSnapshot* snap = HeapProfiler::TakeSnapshot(String::Empty());
   FileOutputStream stream(fp);
   snap->Serialize(&stream, HeapSnapshot::kJSON);
   fclose(fp);
-
-  _exit(42);
 }
 
-void Init(Handle<Object> obj)
-{
-  HandleScope scope;
-
-  if (uv_async_init(uv_default_loop(), &async_handle, AsyncEvent)) abort();
-#if NODE_MAJOR_VERSION == 0 && NODE_MINOR_VERSION == 6
-  uv_unref(uv_default_loop());
-#else
-  uv_unref((uv_handle_t*)&async_handle);
-#endif
-
-  struct sigaction sa;
-  memset(&sa, 0, sizeof(sa));
-  sa.sa_handler = SignalHandler;
-  if (sigaction(SIGUSR2,  &sa, NULL)) abort();
-}
-
-NODE_MODULE(heapdump, Init)
-
-} // namespace anonymous
+} // namespace heapdump

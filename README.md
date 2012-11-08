@@ -15,17 +15,32 @@ Make a dump of the V8 heap for later inspection.
 
 Load the add-on in your application:
 
-    require('heapdump');
+    var heapdump = require('heapdump');
 
-The module does not export any properties. Now send the node process a SIGUSR2
-signal:
+The module exports a single, no-arg function called `writeSnapshot()` that
+writes a `heapdump-xxxx.xxxx.heapsnapshot` file to the application's current
+directory.
+
+    heapdump.writeSnapshot();
+
+On UNIX, it forks off a new process that writes out the snapshot in an
+asynchronous fashion.  (That is, the function does not block.)
+
+On Windows, however, it returns only after the snapshot is fully written.
+If the heap is large, that may take a while.
+
+On UNIX platforms, you can force a snapshot by sending the node.js process
+a SIGUSR2 signal:
 
     $ kill -USR2 <pid>
 
-A heapdump-xxxx.xxxx.heapsnapshot is written to the application's current
-directory.
+### Inspecting the snapshot
 
-Open [Google Chrome](https://www.google.com/intl/en/chrome/browser/) and press
-F12 to open the developer toolbar. Go to the `Profiles` tab, right-click in the
-tab pane and select `Load profile...`. Select the dump file and click `Open`.
-You can now inspect the heap snapshot at your leisure.
+Open [Google Chrome](https://www.google.com/intl/en/chrome/browser/) and
+press F12 to open the developer toolbar.
+
+Go to the `Profiles` tab, right-click in the tab pane and select
+`Load profile...`.
+
+Select the dump file and click `Open`.  You can now inspect the heap snapshot
+at your leisure.
