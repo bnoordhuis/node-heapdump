@@ -77,6 +77,12 @@ void AsyncEvent(uv_async_t* handle, int status)
   assert(handle == &async_handle);
   if (fork() != 0) return;
 
+  // Stop C-c to main process from killing us.
+  struct sigaction sa;
+  memset(&sa, 0, sizeof(sa));
+  sa.sa_handler = SIG_IGN;
+  if (sigaction(SIGINT, &sa, NULL)) abort();
+
   timeval tv;
   if (gettimeofday(&tv, NULL)) abort();
 
