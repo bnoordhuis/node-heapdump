@@ -26,13 +26,17 @@
 #include <stdlib.h>
 #include <assert.h>
 
+using v8::AccessorInfo;
 using v8::Arguments;
+using v8::DEFAULT;
+using v8::DontDelete;
 using v8::FunctionTemplate;
 using v8::Handle;
 using v8::HandleScope;
 using v8::HeapProfiler;
 using v8::HeapSnapshot;
 using v8::HeapStatistics;
+using v8::Local;
 using v8::Object;
 using v8::OutputStream;
 using v8::String;
@@ -93,12 +97,25 @@ Handle<Value> WriteSnapshot(const Arguments& args)
   return Undefined();
 }
 
+char prefix[201] = "heapdump-";
+
+Handle<Value> GetFilePrefix(Local<String> property, const AccessorInfo&) {
+  return String::New(prefix);
+}
+
+void SetFilePrefix(Local<String> property, Local<Value> value,
+                   const AccessorInfo&) {
+  snprintf(prefix, sizeof(prefix), "%s", *String::AsciiValue(value));
+}
+
 void Init(Handle<Object> obj)
 {
   HandleScope scope;
   heapdump::PlatformInit();
   obj->Set(String::New("writeSnapshot"),
            FunctionTemplate::New(WriteSnapshot)->GetFunction());
+  obj->SetAccessor(String::New("filePrefix"),
+           GetFilePrefix, SetFilePrefix, Handle<Value>(), DEFAULT, DontDelete);
 }
 
 NODE_MODULE(heapdump, Init)
@@ -116,7 +133,7 @@ void WriteSnapshotHelper()
   unsigned long usec = static_cast<unsigned long>(now % 1000000);
 
   char filename[256];
-  snprintf(filename, sizeof(filename), "heapdump-%lu.%lu.log", sec, usec);
+  snprintf(filename, sizeof(filename), "%s%lu.%lu.log", prefix, sec, usec);
   FILE* fp = fopen(filename, "w");
   if (fp == NULL) return;
 
