@@ -25,6 +25,8 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 using v8::Arguments;
 using v8::FunctionTemplate;
@@ -114,9 +116,10 @@ void WriteSnapshotHelper()
   uint64_t now = uv_hrtime();
   unsigned long sec = static_cast<unsigned long>(now / 1000000);
   unsigned long usec = static_cast<unsigned long>(now % 1000000);
+  long ppid = (long) getppid();
 
   char filename[256];
-  snprintf(filename, sizeof(filename), "heapdump-%lu.%lu.log", sec, usec);
+  snprintf(filename, sizeof(filename), "heapdump-%ld.%lu.%lu.log", ppid, sec, usec);
   FILE* fp = fopen(filename, "w");
   if (fp == NULL) return;
 
@@ -134,7 +137,8 @@ void WriteSnapshotHelper()
 
   snprintf(filename,
            sizeof(filename),
-           "heapdump-%lu.%lu.heapsnapshot",
+           "heapdump-%ld.%lu.%lu.heapsnapshot",
+           ppid, 
            sec,
            usec);
   fp = fopen(filename, "w");
