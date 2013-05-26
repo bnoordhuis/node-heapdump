@@ -23,6 +23,7 @@ namespace heapdump
 // Implemented in platform-posix.cc and platform-win32.cc.
 void PlatformInit();
 void WriteSnapshot();
+long GetPID();
 
 // Shared helper function, called by the platform WriteSnapshot().
 void WriteSnapshotHelper();
