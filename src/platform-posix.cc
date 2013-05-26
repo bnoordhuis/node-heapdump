@@ -24,6 +24,7 @@
 #include <string.h>
 #include <signal.h>
 #include <unistd.h>
+#include <sys/types.h>
 
 namespace
 {
@@ -69,6 +70,11 @@ void WriteSnapshot()
   setsid();
   WriteSnapshotHelper();
   _exit(42);
+}
+
+long GetPID()
+{
+  return (long) getppid();
 }
 
 } // namespace heapdump

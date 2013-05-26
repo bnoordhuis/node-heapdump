@@ -15,6 +15,7 @@
  */
 
 #include "heapdump.h"
+#include <Windows.h>
 
 namespace heapdump {
 
@@ -25,6 +26,12 @@ void PlatformInit()
 void WriteSnapshot()
 {
   WriteSnapshotHelper();
+}
+
+// Win32 DWORD is unsigned; overflow will look funny
+long GetPID()
+{
+  return (long) GetCurrentProcessId();
 }
 
 } // namespace heapdump

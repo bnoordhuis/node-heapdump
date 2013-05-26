@@ -114,9 +114,10 @@ void WriteSnapshotHelper()
   uint64_t now = uv_hrtime();
   unsigned long sec = static_cast<unsigned long>(now / 1000000);
   unsigned long usec = static_cast<unsigned long>(now % 1000000);
+  long pid = heapdump::GetPID();
 
   char filename[256];
-  snprintf(filename, sizeof(filename), "heapdump-%lu.%lu.log", sec, usec);
+  snprintf(filename, sizeof(filename), "heapdump-%ld.%lu.%lu.log", pid, sec, usec);
   FILE* fp = fopen(filename, "w");
   if (fp == NULL) return;
 
@@ -134,7 +135,8 @@ void WriteSnapshotHelper()
 
   snprintf(filename,
            sizeof(filename),
-           "heapdump-%lu.%lu.heapsnapshot",
+           "heapdump-%ld.%lu.%lu.heapsnapshot",
+           pid, 
            sec,
            usec);
   fp = fopen(filename, "w");

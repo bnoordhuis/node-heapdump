@@ -18,8 +18,8 @@ Load the add-on in your application:
     var heapdump = require('heapdump');
 
 The module exports a single, no-arg function called `writeSnapshot()` that
-writes a `heapdump-xxxx.xxxx.heapsnapshot` file to the application's current
-directory.
+writes a `heapdump-<pid>.<sec>.<usec>.heapsnapshot` file to the application's current
+directory:
 
     heapdump.writeSnapshot();
 
