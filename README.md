@@ -7,6 +7,10 @@ Make a dump of the V8 heap for later inspection.
 
     npm install heapdump
 
+Or, if you are running node.js v0.6 or v0.8:
+
+    npm install heapdump@0.1.0
+
 ### Build
 
     node-gyp configure build

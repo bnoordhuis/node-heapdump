@@ -25,42 +25,15 @@
 #include <signal.h>
 #include <unistd.h>
 
-namespace
-{
-
-uv_async_t async_handle;
-
-void SignalHandler(int signum)
-{
-  if (uv_async_send(&async_handle)) abort();
-}
-
-void AsyncEvent(uv_async_t* handle, int status)
-{
-  assert(handle == &async_handle);
-  heapdump::WriteSnapshot();
-}
-
-} // namespace anonymous
-
-
 namespace heapdump
 {
 
-void PlatformInit()
+uv_signal_t signal_handle;
+
+void OnSignal(uv_signal_t* handle, int signo)
 {
-  if (uv_async_init(uv_default_loop(), &async_handle, AsyncEvent)) abort();
-
-#if NODE_MAJOR_VERSION == 0 && NODE_MINOR_VERSION == 6
-  uv_unref(uv_default_loop());
-#else
-  uv_unref(reinterpret_cast<uv_handle_t*>(&async_handle));
-#endif
-
-  struct sigaction sa;
-  memset(&sa, 0, sizeof(sa));
-  sa.sa_handler = SignalHandler;
-  if (sigaction(SIGUSR2, &sa, NULL)) abort();
+  assert(handle == &signal_handle);
+  heapdump::WriteSnapshot();
 }
 
 void WriteSnapshot()
@@ -69,6 +42,13 @@ void WriteSnapshot()
   setsid();
   WriteSnapshotHelper();
   _exit(42);
+}
+
+void PlatformInit()
+{
+  uv_signal_init(uv_default_loop(), &signal_handle);
+  uv_signal_start(&signal_handle, OnSignal, SIGUSR2);
+  uv_unref(reinterpret_cast<uv_handle_t*>(&signal_handle));
 }
 
 } // namespace heapdump
