@@ -27,6 +27,7 @@
 #include <assert.h>
 
 using v8::Arguments;
+using v8::False;
 using v8::FunctionTemplate;
 using v8::Handle;
 using v8::HandleScope;
@@ -36,7 +37,7 @@ using v8::HeapStatistics;
 using v8::Object;
 using v8::OutputStream;
 using v8::String;
-using v8::Undefined;
+using v8::True;
 using v8::V8;
 using v8::Value;
 
@@ -89,8 +90,16 @@ private:
 
 Handle<Value> WriteSnapshot(const Arguments& args)
 {
-  heapdump::WriteSnapshot();
-  return Undefined();
+  bool ok;
+  if (args[0]->IsString()) {
+    String::Utf8Value filename(args[0]);
+    ok = heapdump::WriteSnapshot(*filename);
+  } else {
+    ok = heapdump::WriteSnapshot(NULL);
+  }
+  // Throwing on error is too disruptive, just return a boolean indicating
+  // success.
+  return ok ? True() : False();
 }
 
 void Init(Handle<Object> obj)
@@ -109,41 +118,31 @@ NODE_MODULE(heapdump, Init)
 namespace heapdump
 {
 
-void WriteSnapshotHelper()
+bool WriteSnapshotHelper(const char* filename)
 {
-  uint64_t now = uv_hrtime();
-  unsigned long sec = static_cast<unsigned long>(now / 1000000);
-  unsigned long usec = static_cast<unsigned long>(now % 1000000);
+  char scratch[256];
+  if (filename == NULL) {
+    uint64_t now = uv_hrtime();
+    unsigned long sec = static_cast<unsigned long>(now / 1000000);
+    unsigned long usec = static_cast<unsigned long>(now % 1000000);
+    snprintf(scratch,
+             sizeof(scratch),
+             "heapdump-%lu.%lu.heapsnapshot",
+             sec,
+             usec);
+    filename = scratch;
+  }
 
-  char filename[256];
-  snprintf(filename, sizeof(filename), "heapdump-%lu.%lu.log", sec, usec);
   FILE* fp = fopen(filename, "w");
-  if (fp == NULL) return;
-
-  HeapStatistics stats;
-  V8::GetHeapStatistics(&stats);
-  fprintf(fp, "version: 1.0\n");
-#define X(attr)                                                               \
-  fprintf(fp, #attr ": %lu\n", static_cast<unsigned long>(stats.attr()))
-  X(total_heap_size);
-  X(total_heap_size_executable);
-  X(used_heap_size);
-  X(heap_size_limit);
-#undef X
-  fclose(fp);
-
-  snprintf(filename,
-           sizeof(filename),
-           "heapdump-%lu.%lu.heapsnapshot",
-           sec,
-           usec);
-  fp = fopen(filename, "w");
-  if (fp == NULL) return;
+  if (fp == NULL) {
+    return false;
+  }
 
   const HeapSnapshot* snap = HeapProfiler::TakeSnapshot(String::Empty());
   FileOutputStream stream(fp);
   snap->Serialize(&stream, HeapSnapshot::kJSON);
   fclose(fp);
+  return true;
 }
 
 } // namespace heapdump

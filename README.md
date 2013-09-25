@@ -21,11 +21,11 @@ Load the add-on in your application:
 
     var heapdump = require('heapdump');
 
-The module exports a single, no-arg function called `writeSnapshot()` that
-writes a `heapdump-xxxx.xxxx.heapsnapshot` file to the application's current
-directory.
+The module exports a single `writeSnapshot([filename])` function that writes
+out a snapshot.  `filename` defaults to `heapdump-<sec>.<usec>.heapsnapshot`
+when omitted.
 
-    heapdump.writeSnapshot();
+    heapdump.writeSnapshot('/var/local/' + Date.now() + '.heapsnapshot');
 
 On UNIX, it forks off a new process that writes out the snapshot in an
 asynchronous fashion.  (That is, the function does not block.)
@@ -48,3 +48,6 @@ Go to the `Profiles` tab, right-click in the tab pane and select
 
 Select the dump file and click `Open`.  You can now inspect the heap snapshot
 at your leisure.
+
+Note that Chrome will refuse to load the file unless it has the `.heapsnapshot`
+extension.

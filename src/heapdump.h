@@ -22,10 +22,10 @@ namespace heapdump
 
 // Implemented in platform-posix.cc and platform-win32.cc.
 void PlatformInit();
-void WriteSnapshot();
+bool WriteSnapshot(const char* filename);
 
 // Shared helper function, called by the platform WriteSnapshot().
-void WriteSnapshotHelper();
+bool WriteSnapshotHelper(const char* filename);
 
 }
 

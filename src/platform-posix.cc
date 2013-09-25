@@ -36,7 +36,7 @@ pid_t child_pid = -1;
 void OnSIGUSR2(uv_signal_t* handle, int signo)
 {
   assert(handle == &signal_handle);
-  heapdump::WriteSnapshot();
+  heapdump::WriteSnapshot(NULL);
 }
 
 void OnSIGCHLD(uv_signal_t* handle, int signo)
@@ -50,18 +50,23 @@ void OnSIGCHLD(uv_signal_t* handle, int signo)
   uv_signal_stop(&sigchld_handle);
 }
 
-void WriteSnapshot()
+bool WriteSnapshot(const char* filename)
 {
-  if (uv_is_active(reinterpret_cast<uv_handle_t*>(&sigchld_handle))) return;
+  if (uv_is_active(reinterpret_cast<uv_handle_t*>(&sigchld_handle))) {
+    return true;  // Already busy writing a snapshot.
+  }
   child_pid = fork();
-  if (child_pid == -1) return;
+  if (child_pid == -1) {
+    return false;
+  }
   if (child_pid != 0) {
     uv_signal_start(&sigchld_handle, OnSIGCHLD, SIGCHLD);
-    return;
+    return true;
   }
   setsid();
-  WriteSnapshotHelper();
+  WriteSnapshotHelper(filename);
   _exit(42);
+  return true;  // Placate compiler.
 }
 
 void PlatformInit()

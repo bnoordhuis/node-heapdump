@@ -22,9 +22,9 @@ void PlatformInit()
 {
 }
 
-void WriteSnapshot()
+bool WriteSnapshot(const char* filename)
 {
-  WriteSnapshotHelper();
+  return WriteSnapshotHelper(filename);
 }
 
 } // namespace heapdump
