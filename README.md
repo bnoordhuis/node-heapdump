@@ -38,6 +38,11 @@ a SIGUSR2 signal:
 
     $ kill -USR2 <pid>
 
+The SIGUSR2 signal handler is enabled by default but you can disable it
+by setting `NODE_HEAPDUMP_OPTIONS=nosignal` in the environment:
+
+    $ env NODE_HEAPDUMP_OPTIONS=nosignal node script.js
+
 ### Inspecting the snapshot
 
 Open [Google Chrome](https://www.google.com/intl/en/chrome/browser/) and

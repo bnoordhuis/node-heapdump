@@ -71,10 +71,13 @@ bool WriteSnapshot(const char* filename)
 
 void PlatformInit()
 {
-  uv_signal_init(uv_default_loop(), &sigchld_handle);
-  uv_signal_init(uv_default_loop(), &signal_handle);
-  uv_signal_start(&signal_handle, OnSIGUSR2, SIGUSR2);
-  uv_unref(reinterpret_cast<uv_handle_t*>(&signal_handle));
+  const char* options = getenv("NODE_HEAPDUMP_OPTIONS");
+  if (options == NULL || strcmp(options, "nosignal") != 0) {
+    uv_signal_init(uv_default_loop(), &sigchld_handle);
+    uv_signal_init(uv_default_loop(), &signal_handle);
+    uv_signal_start(&signal_handle, OnSIGUSR2, SIGUSR2);
+    uv_unref(reinterpret_cast<uv_handle_t*>(&signal_handle));
+  }
 }
 
 } // namespace heapdump
