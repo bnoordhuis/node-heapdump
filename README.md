@@ -56,3 +56,12 @@ at your leisure.
 
 Note that Chrome will refuse to load the file unless it has the `.heapsnapshot`
 extension.
+
+### Caveats
+
+On UNIX systems, the rule of thumb for creating a heap snapshot is that it
+requires memory twice the size of the heap at the time of the snapshot.
+If you end up with empty or truncated snapshot files, check the output of
+`dmesg`; you may have had a run-in with the system's OOM killer or a resource
+limit enforcing policy, like `ulimit -u` (max user processes) or `ulimit -v`
+(max virtual memory size).
