@@ -20,11 +20,13 @@
 #include "node_version.h"
 
 #include <assert.h>
+#include <errno.h>
+#include <signal.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <signal.h>
-#include <unistd.h>
 #include <sys/wait.h>
+#include <unistd.h>
 
 namespace heapdump
 {
@@ -44,9 +46,16 @@ void OnSIGCHLD(uv_signal_t* handle, int signo)
   assert(handle == &sigchld_handle);
   int status;
   pid_t pid = waitpid(child_pid, &status, WNOHANG);
-  assert(pid != -1);
-  if (pid == 0) return;
-  assert(pid == child_pid);
+  if (pid == 0) {
+    return;
+  }
+  // ECHILD is not an error, it means that libuv's internal SIGCHLD handler
+  // came before use and consumed the event.  Just ignore it and stop the
+  // signal watcher, our child is gone and that's what matters.
+  if (pid == -1 && errno != ECHILD) {
+    perror("(node-heapdump) waitpid");
+    return;
+  }
   uv_signal_stop(&sigchld_handle);
 }
 
