@@ -26,23 +26,21 @@
 #include <stdlib.h>
 #include <assert.h>
 
-using v8::Arguments;
-using v8::False;
+namespace
+{
+
+using v8::FunctionCallbackInfo;
 using v8::FunctionTemplate;
 using v8::Handle;
 using v8::HandleScope;
 using v8::HeapProfiler;
 using v8::HeapSnapshot;
-using v8::HeapStatistics;
+using v8::Isolate;
 using v8::Object;
 using v8::OutputStream;
 using v8::String;
-using v8::True;
 using v8::V8;
 using v8::Value;
-
-namespace
-{
 
 #if defined(_WIN32)
 // Emulate snprintf() on windows, _snprintf() doesn't zero-terminate the buffer
@@ -88,25 +86,29 @@ private:
   FILE* stream_;
 };
 
-Handle<Value> WriteSnapshot(const Arguments& args)
+void WriteSnapshot(const FunctionCallbackInfo<Value>& args)
 {
+  Isolate* isolate = args.GetIsolate();
+  HandleScope handle_scope(isolate);
+
   bool ok;
   if (args[0]->IsString()) {
     String::Utf8Value filename(args[0]);
-    ok = heapdump::WriteSnapshot(*filename);
+    ok = heapdump::WriteSnapshot(isolate, *filename);
   } else {
-    ok = heapdump::WriteSnapshot(NULL);
+    ok = heapdump::WriteSnapshot(isolate, NULL);
   }
+
   // Throwing on error is too disruptive, just return a boolean indicating
   // success.
-  return ok ? True() : False();
+  args.GetReturnValue().Set(ok);
 }
 
 void Init(Handle<Object> obj)
 {
-  HandleScope scope;
-  heapdump::PlatformInit();
-  obj->Set(String::New("writeSnapshot"),
+  Isolate* isolate = obj->CreationContext()->GetIsolate();
+  heapdump::PlatformInit(isolate);
+  obj->Set(String::NewFromUtf8(isolate, "writeSnapshot"),
            FunctionTemplate::New(WriteSnapshot)->GetFunction());
 }
 
@@ -118,7 +120,7 @@ NODE_MODULE(heapdump, Init)
 namespace heapdump
 {
 
-bool WriteSnapshotHelper(const char* filename)
+bool WriteSnapshotHelper(Isolate* isolate, const char* filename)
 {
   char scratch[256];
   if (filename == NULL) {
@@ -138,7 +140,8 @@ bool WriteSnapshotHelper(const char* filename)
     return false;
   }
 
-  const HeapSnapshot* snap = HeapProfiler::TakeSnapshot(String::Empty());
+  const HeapSnapshot* snap =
+      isolate->GetHeapProfiler()->TakeHeapSnapshot(String::Empty());
   FileOutputStream stream(fp);
   snap->Serialize(&stream, HeapSnapshot::kJSON);
   fclose(fp);

@@ -17,15 +17,17 @@
 #ifndef NODE_HEAPDUMP_H_
 #define NODE_HEAPDUMP_H_
 
+#include "v8.h"
+
 namespace heapdump
 {
 
 // Implemented in platform-posix.cc and platform-win32.cc.
-void PlatformInit();
-bool WriteSnapshot(const char* filename);
+void PlatformInit(v8::Isolate* isolate);
+bool WriteSnapshot(v8::Isolate* isolate, const char* filename);
 
 // Shared helper function, called by the platform WriteSnapshot().
-bool WriteSnapshotHelper(const char* filename);
+bool WriteSnapshotHelper(v8::Isolate* isolate, const char* filename);
 
 }
 

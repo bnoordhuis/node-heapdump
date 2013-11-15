@@ -15,16 +15,19 @@
  */
 
 #include "heapdump.h"
+#include "v8.h"
 
 namespace heapdump {
 
-void PlatformInit()
+using v8::Isolate;
+
+void PlatformInit(Isolate*)
 {
 }
 
-bool WriteSnapshot(const char* filename)
+bool WriteSnapshot(Isolate* isolate, const char* filename)
 {
-  return WriteSnapshotHelper(filename);
+  return WriteSnapshotHelper(isolate, filename);
 }
 
 } // namespace heapdump
