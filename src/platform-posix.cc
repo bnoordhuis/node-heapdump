@@ -30,7 +30,6 @@
 
 namespace heapdump
 {
-
 using v8::Isolate;
 
 uv_signal_t signal_handle;
@@ -92,5 +91,4 @@ void PlatformInit(Isolate* isolate)
     signal_handle.data = isolate;
   }
 }
-
 } // namespace heapdump

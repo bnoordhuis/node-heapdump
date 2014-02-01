@@ -18,6 +18,7 @@
 #define NODE_HEAPDUMP_H_
 
 #include "v8.h"
+#include "node.h"
 
 namespace heapdump
 {

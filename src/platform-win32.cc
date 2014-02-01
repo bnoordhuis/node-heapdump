@@ -15,6 +15,7 @@
  */
 
 #include "heapdump.h"
+
 #include "v8.h"
 
 namespace heapdump {
@@ -29,5 +30,4 @@ bool WriteSnapshot(Isolate* isolate, const char* filename)
 {
   return WriteSnapshotHelper(isolate, filename);
 }
-
 } // namespace heapdump
