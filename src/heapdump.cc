@@ -17,6 +17,7 @@
 #include "heapdump.h"
 
 #include "node.h"
+#include "node_version.h"
 #include "uv.h"
 #include "v8.h"
 #include "v8-profiler.h"
@@ -29,11 +30,15 @@
 namespace
 {
 
-using v8::FunctionCallbackInfo;
+#if NODE_MAJOR_VERSION == 0 && NODE_MINOR_VERSION == 10
+# define COMPAT(exp, _) exp
+#else
+# define COMPAT(_, exp) exp
+#endif
+
 using v8::FunctionTemplate;
 using v8::Handle;
 using v8::HandleScope;
-using v8::HeapProfiler;
 using v8::HeapSnapshot;
 using v8::Isolate;
 using v8::Object;
@@ -86,10 +91,12 @@ private:
   FILE* stream_;
 };
 
-void WriteSnapshot(const FunctionCallbackInfo<Value>& args)
+COMPAT(Handle<Value> WriteSnapshot(const v8::Arguments& args),
+       void WriteSnapshot(const v8::FunctionCallbackInfo<Value>& args))
 {
-  Isolate* isolate = args.GetIsolate();
-  HandleScope handle_scope(isolate);
+  Isolate* isolate = Isolate::GetCurrent();
+  COMPAT(HandleScope handle_scope,
+         HandleScope handle_scope(isolate));
 
   bool ok;
   if (args[0]->IsString()) {
@@ -101,14 +108,16 @@ void WriteSnapshot(const FunctionCallbackInfo<Value>& args)
 
   // Throwing on error is too disruptive, just return a boolean indicating
   // success.
-  args.GetReturnValue().Set(ok);
+  COMPAT(return v8::Boolean::New(ok),
+         args.GetReturnValue().Set(ok));
 }
 
 void Init(Handle<Object> obj)
 {
-  Isolate* isolate = obj->CreationContext()->GetIsolate();
+  Isolate* isolate = Isolate::GetCurrent();
   heapdump::PlatformInit(isolate);
-  obj->Set(String::NewFromUtf8(isolate, "writeSnapshot"),
+  obj->Set(COMPAT(String::New("writeSnapshot"),
+                  String::NewFromUtf8(isolate, "writeSnapshot")),
            FunctionTemplate::New(WriteSnapshot)->GetFunction());
 }
 
@@ -140,8 +149,9 @@ bool WriteSnapshotHelper(Isolate* isolate, const char* filename)
     return false;
   }
 
-  const HeapSnapshot* snap =
-      isolate->GetHeapProfiler()->TakeHeapSnapshot(String::Empty());
+  const HeapSnapshot* snap = COMPAT(
+      v8::HeapProfiler::TakeSnapshot(String::Empty()),
+      isolate->GetHeapProfiler()->TakeHeapSnapshot(String::Empty()));
   FileOutputStream stream(fp);
   snap->Serialize(&stream, HeapSnapshot::kJSON);
   fclose(fp);
