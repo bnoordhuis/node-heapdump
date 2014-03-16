@@ -17,6 +17,7 @@
 #ifndef NODE_HEAPDUMP_H_
 #define NODE_HEAPDUMP_H_
 
+#include "node.h"  // Picks up BUILDING_NODE_EXTENSION on Windows, see #30.
 #include "v8.h"
 
 namespace heapdump
