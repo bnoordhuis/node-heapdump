@@ -41,6 +41,7 @@ using v8::Handle;
 using v8::HandleScope;
 using v8::HeapSnapshot;
 using v8::Isolate;
+using v8::Local;
 using v8::Object;
 using v8::OutputStream;
 using v8::String;
@@ -116,9 +117,12 @@ void Init(Handle<Object> obj)
 {
   Isolate* isolate = Isolate::GetCurrent();
   heapdump::PlatformInit(isolate);
-  obj->Set(COMPAT(String::New("writeSnapshot"),
-                  String::NewFromUtf8(isolate, "writeSnapshot")),
-           FunctionTemplate::New(WriteSnapshot)->GetFunction());
+  Local<String> key = COMPAT(String::New("writeSnapshot"),
+                             String::NewFromUtf8(isolate, "writeSnapshot"));
+  Local<FunctionTemplate> t =
+      COMPAT(FunctionTemplate::New(WriteSnapshot),
+             FunctionTemplate::New(isolate, WriteSnapshot));
+  obj->Set(key, t->GetFunction());
 }
 
 NODE_MODULE(heapdump, Init)
@@ -151,7 +155,7 @@ bool WriteSnapshotHelper(Isolate* isolate, const char* filename)
 
   const HeapSnapshot* snap = COMPAT(
       v8::HeapProfiler::TakeSnapshot(String::Empty()),
-      isolate->GetHeapProfiler()->TakeHeapSnapshot(String::Empty()));
+      isolate->GetHeapProfiler()->TakeHeapSnapshot(String::Empty(isolate)));
   FileOutputStream stream(fp);
   snap->Serialize(&stream, HeapSnapshot::kJSON);
   fclose(fp);
