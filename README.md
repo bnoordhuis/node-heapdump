@@ -21,11 +21,18 @@ Load the add-on in your application:
 
     var heapdump = require('heapdump');
 
-The module exports a single `writeSnapshot([filename])` function that writes
-out a snapshot.  `filename` defaults to `heapdump-<sec>.<usec>.heapsnapshot`
-when omitted.
+The module exports a single `writeSnapshot([filename], [callback])` function
+that writes out a snapshot.  `filename` defaults to
+`heapdump-<sec>.<usec>.heapsnapshot` when omitted.
 
     heapdump.writeSnapshot('/var/local/' + Date.now() + '.heapsnapshot');
+
+The function also takes an optional callback function which is called upon
+completion of the heap dump.
+
+    heapdump.writeSnapshot(function(){
+      console.log('dump complete');
+    });
 
 On UNIX, it forks off a new process that writes out the snapshot in an
 asynchronous fashion.  (That is, the function does not block.)

@@ -17,7 +17,6 @@
 #include "heapdump.h"
 
 #include "node.h"
-#include "node_version.h"
 #include "uv.h"
 #include "v8.h"
 #include "v8-profiler.h"
@@ -30,12 +29,8 @@
 namespace
 {
 
-#if NODE_MAJOR_VERSION == 0 && NODE_MINOR_VERSION == 10
-# define COMPAT(exp, _) exp
-#else
-# define COMPAT(_, exp) exp
-#endif
-
+using v8::Context;
+using v8::Function;
 using v8::FunctionTemplate;
 using v8::Handle;
 using v8::HandleScope;
@@ -44,9 +39,11 @@ using v8::Isolate;
 using v8::Local;
 using v8::Object;
 using v8::OutputStream;
+using v8::Persistent;
 using v8::String;
 using v8::V8;
 using v8::Value;
+using heapdump::on_complete_callback;
 
 #if defined(_WIN32)
 // Emulate snprintf() on windows, _snprintf() doesn't zero-terminate the buffer
@@ -100,6 +97,17 @@ COMPAT(Handle<Value> WriteSnapshot(const v8::Arguments& args),
          HandleScope handle_scope(isolate));
 
   bool ok;
+  Local<Value> maybe_function = args[0];
+  if (1 < args.Length()) {
+    maybe_function = args[1];
+  }
+
+  if (maybe_function->IsFunction()) {
+    Local<Function> function = maybe_function.As<Function>();
+    COMPAT(on_complete_callback = Persistent<Function>::New(function),
+           on_complete_callback.Reset(isolate, function));
+  }
+
   if (args[0]->IsString()) {
     String::Utf8Value filename(args[0]);
     ok = heapdump::WriteSnapshot(isolate, *filename);
@@ -166,6 +174,28 @@ bool WriteSnapshotHelper(Isolate* isolate, const char* filename)
   const_cast<HeapSnapshot*>(snap)->Delete();
 #endif
   return true;
+}
+
+void InvokeCallback()
+{
+  if (!on_complete_callback.IsEmpty()) COMPAT({
+      HandleScope handle_scope;
+      Local<Function> callback = *on_complete_callback;
+      node::MakeCallback(Context::GetCurrent()->Global(), callback, 0, NULL);
+      on_complete_callback.Dispose();
+    }, {
+      Isolate* isolate = Isolate::GetCurrent();
+      HandleScope handle_scope(isolate);
+      Local<Function> callback =
+          Local<Function>::New(isolate, on_complete_callback);
+      node::MakeCallback(isolate,
+                         isolate->GetCurrentContext()->Global(),
+                         callback,
+                         0,
+                         NULL);
+      on_complete_callback.Reset();
+    }
+  );
 }
 
 } // namespace heapdump

@@ -19,7 +19,10 @@
 
 namespace heapdump {
 
+using v8::Function;
 using v8::Isolate;
+
+v8::Persistent<v8::Function> on_complete_callback;
 
 void PlatformInit(Isolate*)
 {
@@ -27,7 +30,9 @@ void PlatformInit(Isolate*)
 
 bool WriteSnapshot(Isolate* isolate, const char* filename)
 {
-  return WriteSnapshotHelper(isolate, filename);
+  bool result = WriteSnapshotHelper(isolate, filename);
+  InvokeCallback();
+  return result;
 }
 
 } // namespace heapdump
