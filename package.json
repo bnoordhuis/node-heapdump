@@ -16,5 +16,12 @@
   "engines": {
     "node": ">=0.10.0"
   },
-  "license": "ISC"
+  "license": "ISC",
+  "scripts": {
+    "test": "tap test/test-*"
+  },
+  "devDependencies": {
+    "shelljs": "~0.3.0",
+    "tap": "~0.4.12"
+  }
 }
