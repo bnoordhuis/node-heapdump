@@ -31,16 +31,23 @@
 namespace heapdump
 {
 
+using v8::Function;
 using v8::Isolate;
+using v8::Persistent;
 
 uv_signal_t signal_handle;
 uv_signal_t sigchld_handle;
 pid_t child_pid = -1;
+Persistent<Function> on_complete_callback;
 
 void OnSIGUSR2(uv_signal_t* handle, int signo)
 {
   assert(handle == &signal_handle);
   Isolate* isolate = reinterpret_cast<Isolate*>(handle->data);
+  if (!on_complete_callback.IsEmpty()) {
+    COMPAT(on_complete_callback.Dispose(),
+           on_complete_callback.Reset());
+  }
   heapdump::WriteSnapshot(isolate, NULL);
 }
 
@@ -52,6 +59,9 @@ void OnSIGCHLD(uv_signal_t* handle, int signo)
   if (pid == 0) {
     return;
   }
+
+  InvokeCallback();
+
   // ECHILD is not an error, it means that libuv's internal SIGCHLD handler
   // came before use and consumed the event.  Just ignore it and stop the
   // signal watcher, our child is gone and that's what matters.
@@ -65,7 +75,7 @@ void OnSIGCHLD(uv_signal_t* handle, int signo)
 bool WriteSnapshot(Isolate* isolate, const char* filename)
 {
   if (uv_is_active(reinterpret_cast<uv_handle_t*>(&sigchld_handle))) {
-    return true;  // Already busy writing a snapshot.
+    return false;  // Already busy writing a snapshot.
   }
   child_pid = fork();
   if (child_pid == -1) {
