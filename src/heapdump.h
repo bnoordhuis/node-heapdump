@@ -18,10 +18,17 @@
 #define NODE_HEAPDUMP_H_
 
 #include "node.h"  // Picks up BUILDING_NODE_EXTENSION on Windows, see #30.
+#include "node_version.h"
 #include "v8.h"
 
 namespace heapdump
 {
+
+#if NODE_MAJOR_VERSION == 0 && NODE_MINOR_VERSION == 10
+# define COMPAT(exp, _) exp
+#else
+# define COMPAT(_, exp) exp
+#endif
 
 // Implemented in platform-posix.cc and platform-win32.cc.
 void PlatformInit(v8::Isolate* isolate);
@@ -29,6 +36,9 @@ bool WriteSnapshot(v8::Isolate* isolate, const char* filename);
 
 // Shared helper function, called by the platform WriteSnapshot().
 bool WriteSnapshotHelper(v8::Isolate* isolate, const char* filename);
+
+extern v8::Persistent<v8::Function> on_complete_callback;
+void InvokeCallback();
 
 }
 
