@@ -19,8 +19,7 @@
 #include "node.h"  // Picks up BUILDING_NODE_EXTENSION on Windows, see #30.
 #include "v8.h"
 
-namespace heapdump
-{
+namespace heapdump {
 
 // Implemented in platform-posix.cc and platform-win32.cc.
 void PlatformInit(v8::Isolate* isolate);
@@ -31,7 +30,6 @@ bool WriteSnapshotHelper(v8::Isolate* isolate, const char* filename);
 
 extern compat::Persistent<v8::Function> on_complete_callback;
 void InvokeCallback();
+}  // namespace heapdump
 
-}
-
-#endif // NODE_HEAPDUMP_H_
+#endif  // NODE_HEAPDUMP_H_

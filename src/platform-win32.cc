@@ -19,15 +19,12 @@ namespace heapdump {
 
 using v8::Isolate;
 
-void PlatformInit(Isolate*)
-{
-}
+void PlatformInit(Isolate*) {}
 
-bool WriteSnapshot(Isolate* isolate, const char* filename)
-{
+bool WriteSnapshot(Isolate* isolate, const char* filename) {
   bool result = WriteSnapshotHelper(isolate, filename);
   InvokeCallback();
   return result;
 }
 
-} // namespace heapdump
+}  // namespace heapdump

@@ -26,8 +26,7 @@
 #include <stdlib.h>
 #include <assert.h>
 
-namespace
-{
+namespace {
 
 using v8::Context;
 using v8::Function;
@@ -60,24 +59,17 @@ int snprintf(char* buf, unsigned int len, const char* fmt, ...) {
 }
 #endif
 
-class FileOutputStream: public OutputStream
-{
-public:
-  FileOutputStream(FILE* stream): stream_(stream)
-  {
+class FileOutputStream : public OutputStream {
+ public:
+  FileOutputStream(FILE* stream) : stream_(stream) {}
+
+  virtual int GetChunkSize() {
+    return 65536;  // big chunks == faster
   }
 
-  virtual int GetChunkSize()
-  {
-    return 65536; // big chunks == faster
-  }
+  virtual void EndOfStream() {}
 
-  virtual void EndOfStream()
-  {
-  }
-
-  virtual WriteResult WriteAsciiChunk(char* data, int size)
-  {
+  virtual WriteResult WriteAsciiChunk(char* data, int size) {
     const size_t len = static_cast<size_t>(size);
     size_t off = 0;
 
@@ -87,12 +79,11 @@ public:
     return off == len ? kContinue : kAbort;
   }
 
-private:
+ private:
   FILE* stream_;
 };
 
-C::ReturnType WriteSnapshot(const C::ArgumentType& args)
-{
+C::ReturnType WriteSnapshot(const C::ArgumentType& args) {
   C::ReturnableHandleScope handle_scope(args);
   Isolate* const isolate = args.GetIsolate();
 
@@ -119,8 +110,7 @@ C::ReturnType WriteSnapshot(const C::ArgumentType& args)
   return handle_scope.Return(ok);
 }
 
-void Initialize(Handle<Object> binding)
-{
+void Initialize(Handle<Object> binding) {
   Isolate* const isolate = Isolate::GetCurrent();
   heapdump::PlatformInit(isolate);
   binding->Set(C::String::NewFromUtf8(isolate, "writeSnapshot"),
@@ -129,25 +119,19 @@ void Initialize(Handle<Object> binding)
 
 NODE_MODULE(heapdump, Initialize)
 
-} // namespace anonymous
+}  // namespace anonymous
 
-
-namespace heapdump
-{
+namespace heapdump {
 
 C::Persistent<v8::Function> on_complete_callback;
 
-bool WriteSnapshotHelper(Isolate* isolate, const char* filename)
-{
+bool WriteSnapshotHelper(Isolate* isolate, const char* filename) {
   char scratch[256];
   if (filename == NULL) {
     uint64_t now = uv_hrtime();
     unsigned long sec = static_cast<unsigned long>(now / 1000000);
     unsigned long usec = static_cast<unsigned long>(now % 1000000);
-    snprintf(scratch,
-             sizeof(scratch),
-             "heapdump-%lu.%lu.heapsnapshot",
-             sec,
+    snprintf(scratch, sizeof(scratch), "heapdump-%lu.%lu.heapsnapshot", sec,
              usec);
     filename = scratch;
   }
@@ -161,17 +145,16 @@ bool WriteSnapshotHelper(Isolate* isolate, const char* filename)
   FileOutputStream stream(fp);
   snap->Serialize(&stream, HeapSnapshot::kJSON);
   fclose(fp);
-  // Only necessary on Windows because the snapshot is created inside the
-  // main process.  On UNIX platforms, it's created from a fork that exits
-  // after writing the snapshot to disk.
+// Only necessary on Windows because the snapshot is created inside the
+// main process.  On UNIX platforms, it's created from a fork that exits
+// after writing the snapshot to disk.
 #if defined(_WIN32)
   const_cast<HeapSnapshot*>(snap)->Delete();
 #endif
   return true;
 }
 
-void InvokeCallback()
-{
+void InvokeCallback() {
   if (on_complete_callback.IsEmpty()) return;
   Isolate* isolate = Isolate::GetCurrent();
   C::HandleScope handle_scope(isolate);
@@ -179,14 +162,11 @@ void InvokeCallback()
 #if COMPAT_NODE_VERSION == 10
   node::MakeCallback(Context::GetCurrent()->Global(), callback, 0, NULL);
 #elif COMPAT_NODE_VERSION == 12
-  node::MakeCallback(isolate,
-                     isolate->GetCurrentContext()->Global(),
-                     callback,
-                     0,
-                     NULL);
+  node::MakeCallback(isolate, isolate->GetCurrentContext()->Global(), callback,
+                     0, NULL);
 #else
 #error "Unsupported node.js version."
 #endif
 }
 
-} // namespace heapdump
+}  // namespace heapdump

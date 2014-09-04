@@ -28,8 +28,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-namespace heapdump
-{
+namespace heapdump {
 
 using v8::Isolate;
 
@@ -37,16 +36,14 @@ uv_signal_t signal_handle;
 uv_signal_t sigchld_handle;
 pid_t child_pid = -1;
 
-void OnSIGUSR2(uv_signal_t* handle, int signo)
-{
+void OnSIGUSR2(uv_signal_t* handle, int signo) {
   assert(handle == &signal_handle);
   Isolate* isolate = reinterpret_cast<Isolate*>(handle->data);
   on_complete_callback.Reset();
   heapdump::WriteSnapshot(isolate, NULL);
 }
 
-void OnSIGCHLD(uv_signal_t* handle, int signo)
-{
+void OnSIGCHLD(uv_signal_t* handle, int signo) {
   assert(handle == &sigchld_handle);
   int status;
   pid_t pid = waitpid(child_pid, &status, WNOHANG);
@@ -66,8 +63,7 @@ void OnSIGCHLD(uv_signal_t* handle, int signo)
   uv_signal_stop(&sigchld_handle);
 }
 
-bool WriteSnapshot(Isolate* isolate, const char* filename)
-{
+bool WriteSnapshot(Isolate* isolate, const char* filename) {
   if (uv_is_active(reinterpret_cast<uv_handle_t*>(&sigchld_handle))) {
     return false;  // Already busy writing a snapshot.
   }
@@ -85,8 +81,7 @@ bool WriteSnapshot(Isolate* isolate, const char* filename)
   return true;  // Placate compiler.
 }
 
-void PlatformInit(Isolate* isolate)
-{
+void PlatformInit(Isolate* isolate) {
   const char* options = getenv("NODE_HEAPDUMP_OPTIONS");
   if (options == NULL || strcmp(options, "nosignal") != 0) {
     uv_signal_init(uv_default_loop(), &signal_handle);
@@ -97,4 +92,4 @@ void PlatformInit(Isolate* isolate)
   uv_signal_init(uv_default_loop(), &sigchld_handle);
 }
 
-} // namespace heapdump
+}  // namespace heapdump
