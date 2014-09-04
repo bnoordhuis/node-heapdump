@@ -13,6 +13,8 @@
 // OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 #include "heapdump.h"
+#include "compat.h"
+#include "compat-inl.h"
 
 #include "node.h"
 #include "uv.h"
@@ -42,6 +44,8 @@ using v8::String;
 using v8::V8;
 using v8::Value;
 using heapdump::on_complete_callback;
+
+namespace C = ::compat;
 
 #if defined(_WIN32)
 // Emulate snprintf() on windows, _snprintf() doesn't zero-terminate the buffer
@@ -87,12 +91,10 @@ private:
   FILE* stream_;
 };
 
-COMPAT(Handle<Value> WriteSnapshot(const v8::Arguments& args),
-       void WriteSnapshot(const v8::FunctionCallbackInfo<Value>& args))
+C::ReturnType WriteSnapshot(const C::ArgumentType& args)
 {
-  Isolate* isolate = Isolate::GetCurrent();
-  COMPAT(HandleScope handle_scope,
-         HandleScope handle_scope(isolate));
+  C::ReturnableHandleScope handle_scope(args);
+  Isolate* const isolate = args.GetIsolate();
 
   bool ok;
   Local<Value> maybe_function = args[0];
@@ -102,8 +104,7 @@ COMPAT(Handle<Value> WriteSnapshot(const v8::Arguments& args),
 
   if (maybe_function->IsFunction()) {
     Local<Function> function = maybe_function.As<Function>();
-    COMPAT(on_complete_callback = Persistent<Function>::New(function),
-           on_complete_callback.Reset(isolate, function));
+    on_complete_callback.Reset(isolate, function);
   }
 
   if (args[0]->IsString()) {
@@ -115,29 +116,26 @@ COMPAT(Handle<Value> WriteSnapshot(const v8::Arguments& args),
 
   // Throwing on error is too disruptive, just return a boolean indicating
   // success.
-  COMPAT(return v8::Boolean::New(ok),
-         args.GetReturnValue().Set(ok));
+  return handle_scope.Return(ok);
 }
 
-void Init(Handle<Object> obj)
+void Initialize(Handle<Object> binding)
 {
-  Isolate* isolate = Isolate::GetCurrent();
+  Isolate* const isolate = Isolate::GetCurrent();
   heapdump::PlatformInit(isolate);
-  Local<String> key = COMPAT(String::New("writeSnapshot"),
-                             String::NewFromUtf8(isolate, "writeSnapshot"));
-  Local<FunctionTemplate> t =
-      COMPAT(FunctionTemplate::New(WriteSnapshot),
-             FunctionTemplate::New(isolate, WriteSnapshot));
-  obj->Set(key, t->GetFunction());
+  binding->Set(C::String::NewFromUtf8(isolate, "writeSnapshot"),
+               C::FunctionTemplate::New(isolate, WriteSnapshot)->GetFunction());
 }
 
-NODE_MODULE(heapdump, Init)
+NODE_MODULE(heapdump, Initialize)
 
 } // namespace anonymous
 
 
 namespace heapdump
 {
+
+C::Persistent<v8::Function> on_complete_callback;
 
 bool WriteSnapshotHelper(Isolate* isolate, const char* filename)
 {
@@ -159,9 +157,7 @@ bool WriteSnapshotHelper(Isolate* isolate, const char* filename)
     return false;
   }
 
-  const HeapSnapshot* snap = COMPAT(
-      v8::HeapProfiler::TakeSnapshot(String::Empty()),
-      isolate->GetHeapProfiler()->TakeHeapSnapshot(String::Empty(isolate)));
+  const HeapSnapshot* const snap = C::HeapProfiler::TakeHeapSnapshot(isolate);
   FileOutputStream stream(fp);
   snap->Serialize(&stream, HeapSnapshot::kJSON);
   fclose(fp);
@@ -176,24 +172,21 @@ bool WriteSnapshotHelper(Isolate* isolate, const char* filename)
 
 void InvokeCallback()
 {
-  if (!on_complete_callback.IsEmpty()) COMPAT({
-      HandleScope handle_scope;
-      Local<Function> callback = *on_complete_callback;
-      node::MakeCallback(Context::GetCurrent()->Global(), callback, 0, NULL);
-      on_complete_callback.Dispose();
-    }, {
-      Isolate* isolate = Isolate::GetCurrent();
-      HandleScope handle_scope(isolate);
-      Local<Function> callback =
-          Local<Function>::New(isolate, on_complete_callback);
-      node::MakeCallback(isolate,
-                         isolate->GetCurrentContext()->Global(),
-                         callback,
-                         0,
-                         NULL);
-      on_complete_callback.Reset();
-    }
-  );
+  if (on_complete_callback.IsEmpty()) return;
+  Isolate* isolate = Isolate::GetCurrent();
+  C::HandleScope handle_scope(isolate);
+  Local<Function> callback = on_complete_callback.ToLocal(isolate);
+#if COMPAT_NODE_VERSION == 10
+  node::MakeCallback(Context::GetCurrent()->Global(), callback, 0, NULL);
+#elif COMPAT_NODE_VERSION == 12
+  node::MakeCallback(isolate,
+                     isolate->GetCurrentContext()->Global(),
+                     callback,
+                     0,
+                     NULL);
+#else
+#error "Unsupported node.js version."
+#endif
 }
 
 } // namespace heapdump

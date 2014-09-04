@@ -17,10 +17,7 @@
 
 namespace heapdump {
 
-using v8::Function;
 using v8::Isolate;
-
-v8::Persistent<v8::Function> on_complete_callback;
 
 void PlatformInit(Isolate*)
 {

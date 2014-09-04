@@ -13,6 +13,8 @@
 // OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 #include "heapdump.h"
+#include "compat.h"
+#include "compat-inl.h"
 
 #include "uv.h"
 #include "v8.h"
@@ -29,23 +31,17 @@
 namespace heapdump
 {
 
-using v8::Function;
 using v8::Isolate;
-using v8::Persistent;
 
 uv_signal_t signal_handle;
 uv_signal_t sigchld_handle;
 pid_t child_pid = -1;
-Persistent<Function> on_complete_callback;
 
 void OnSIGUSR2(uv_signal_t* handle, int signo)
 {
   assert(handle == &signal_handle);
   Isolate* isolate = reinterpret_cast<Isolate*>(handle->data);
-  if (!on_complete_callback.IsEmpty()) {
-    COMPAT(on_complete_callback.Dispose(),
-           on_complete_callback.Reset());
-  }
+  on_complete_callback.Reset();
   heapdump::WriteSnapshot(isolate, NULL);
 }
 
