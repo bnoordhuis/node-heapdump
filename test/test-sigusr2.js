@@ -18,6 +18,8 @@ var shelljs = require('shelljs');
 var test = require('tap').test;
 require(path.join(__dirname, '/../build/Release/heapdump'));
 
+process.chdir(__dirname);
+
 function testSigUsr2(test){
   var server = http.createServer(function(req, res) {
     res.writeHeader(200, {'Content-Type':'text/plain;charset=utf-8',
@@ -29,7 +31,7 @@ function testSigUsr2(test){
     console.log('Listening on http://127.0.0.1:8000/');
     console.log('now sending SIGUSR2 to %d', process.pid);
 
-    var heapSnapshotFile = path.join(__dirname, 'heapdump-*.heapsnapshot');
+    var heapSnapshotFile = 'heapdump-*.heapsnapshot';
     shelljs.rm('-f', heapSnapshotFile);
 
     var killCmd = shelljs.which('kill');

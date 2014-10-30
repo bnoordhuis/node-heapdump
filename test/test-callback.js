@@ -18,6 +18,8 @@ var shelljs = require('shelljs');
 var test = require('tap').test;
 var heapdump = require('../');
 
+process.chdir(__dirname);
+
 function testFuncCall(test){
   var server = http.createServer(function(req, res) {
     res.writeHeader(200);
@@ -27,10 +29,7 @@ function testFuncCall(test){
     console.log('Listening on http://127.0.0.1:8000/');
     console.log('PID %d', process.pid);
 
-    var heapSnapshotFile = path.join(
-      __dirname,
-      'heapdump-*.heapsnapshot'
-    );
+    var heapSnapshotFile = 'heapdump-*.heapsnapshot';
     shelljs.rm('-f', heapSnapshotFile);
 
     function waitForHeapdump(){
