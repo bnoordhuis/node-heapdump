@@ -12,24 +12,30 @@
 // ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 // OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-#ifndef NODE_HEAPDUMP_H_
-#define NODE_HEAPDUMP_H_
+#ifndef SRC_HEAPDUMP_WIN32_H_
+#define SRC_HEAPDUMP_WIN32_H_
 
-#include "compat.h"  // compat::Persistent<T>
-#include "node.h"  // Picks up BUILDING_NODE_EXTENSION on Windows, see #30.
-#include "v8.h"
+namespace {
 
-namespace heapdump {
+inline void PlatformInit(v8::Isolate*) {}
 
-// Implemented in platform-posix.cc and platform-win32.cc.
-void PlatformInit(v8::Isolate* isolate);
-bool WriteSnapshot(v8::Isolate* isolate, const char* filename);
+inline bool WriteSnapshot(v8::Isolate* isolate, const char* filename) {
+  bool result = WriteSnapshotHelper(isolate, filename);
+  InvokeCallback();
+  return result;
+}
 
-// Shared helper function, called by the platform WriteSnapshot().
-bool WriteSnapshotHelper(v8::Isolate* isolate, const char* filename);
+// Emulate snprintf() on windows, _snprintf() doesn't zero-terminate the buffer
+// on overflow.
+inline int snprintf(char* buf, size_t len, const char* fmt, ...) {
+  va_list ap;
+  va_start(ap, fmt);
+  const int n = _vsprintf_p(buf, len, fmt, ap);
+  if (len) buf[len - 1] = '\0';
+  va_end(ap);
+  return n;
+}
 
-extern compat::Persistent<v8::Function> on_complete_callback;
-void InvokeCallback();
-}  // namespace heapdump
+}  // namespace anonymous
 
-#endif  // NODE_HEAPDUMP_H_
+#endif  // SRC_HEAPDUMP_WIN32_H_

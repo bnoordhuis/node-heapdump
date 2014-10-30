@@ -19,15 +19,10 @@
       'sources': [
         'src/compat-inl.h',
         'src/compat.h',
+        'src/heapdump-posix.h',
+        'src/heapdump-win32.h',
         'src/heapdump.cc',
       ],
-      'conditions': [
-        ['OS=="win"', {
-          'sources': ['src/platform-win32.cc'],
-        }, {
-          'sources': ['src/platform-posix.cc'],
-        }]
-      ]
     }
   ]
 }

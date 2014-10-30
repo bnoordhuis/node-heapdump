@@ -12,19 +12,33 @@
 // ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 // OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-#include "heapdump.h"
-#include "compat.h"
-#include "compat-inl.h"
+#include "node.h"  // Picks up BUILDING_NODE_EXTENSION on Windows, see #30.
 
-#include "node.h"
+#include "compat-inl.h"
 #include "uv.h"
-#include "v8.h"
 #include "v8-profiler.h"
+#include "v8.h"
 
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdlib.h>
 #include <assert.h>
+
+namespace {
+
+inline bool WriteSnapshot(v8::Isolate* isolate, const char* filename);
+inline bool WriteSnapshotHelper(v8::Isolate* isolate, const char* filename);
+inline void InvokeCallback();
+inline void PlatformInit(v8::Isolate* isolate);
+static ::compat::Persistent<v8::Function> on_complete_callback;
+
+}  // namespace anonymous
+
+#ifdef _WIN32
+#include "heapdump-win32.h"
+#else
+#include "heapdump-posix.h"
+#endif
 
 namespace {
 
@@ -42,22 +56,8 @@ using v8::Persistent;
 using v8::String;
 using v8::V8;
 using v8::Value;
-using heapdump::on_complete_callback;
 
 namespace C = ::compat;
-
-#if defined(_WIN32)
-// Emulate snprintf() on windows, _snprintf() doesn't zero-terminate the buffer
-// on overflow.
-int snprintf(char* buf, unsigned int len, const char* fmt, ...) {
-  va_list ap;
-  va_start(ap, fmt);
-  int n = _vsprintf_p(buf, len, fmt, ap);
-  if (len) buf[len - 1] = '\0';
-  va_end(ap);
-  return n;
-}
-#endif
 
 class FileOutputStream : public OutputStream {
  public:
@@ -83,7 +83,7 @@ class FileOutputStream : public OutputStream {
   FILE* stream_;
 };
 
-C::ReturnType WriteSnapshot(const C::ArgumentType& args) {
+inline C::ReturnType WriteSnapshot(const C::ArgumentType& args) {
   C::ReturnableHandleScope handle_scope(args);
   Isolate* const isolate = args.GetIsolate();
 
@@ -100,9 +100,9 @@ C::ReturnType WriteSnapshot(const C::ArgumentType& args) {
 
   if (args[0]->IsString()) {
     String::Utf8Value filename(args[0]);
-    ok = heapdump::WriteSnapshot(isolate, *filename);
+    ok = WriteSnapshot(isolate, *filename);
   } else {
-    ok = heapdump::WriteSnapshot(isolate, NULL);
+    ok = WriteSnapshot(isolate, NULL);
   }
 
   // Throwing on error is too disruptive, just return a boolean indicating
@@ -110,22 +110,7 @@ C::ReturnType WriteSnapshot(const C::ArgumentType& args) {
   return handle_scope.Return(ok);
 }
 
-void Initialize(Handle<Object> binding) {
-  Isolate* const isolate = Isolate::GetCurrent();
-  heapdump::PlatformInit(isolate);
-  binding->Set(C::String::NewFromUtf8(isolate, "writeSnapshot"),
-               C::FunctionTemplate::New(isolate, WriteSnapshot)->GetFunction());
-}
-
-NODE_MODULE(heapdump, Initialize)
-
-}  // namespace anonymous
-
-namespace heapdump {
-
-C::Persistent<v8::Function> on_complete_callback;
-
-bool WriteSnapshotHelper(Isolate* isolate, const char* filename) {
+inline bool WriteSnapshotHelper(Isolate* isolate, const char* filename) {
   char scratch[256];
   if (filename == NULL) {
     uint64_t now = uv_hrtime();
@@ -154,7 +139,7 @@ bool WriteSnapshotHelper(Isolate* isolate, const char* filename) {
   return true;
 }
 
-void InvokeCallback() {
+inline void InvokeCallback() {
   if (on_complete_callback.IsEmpty()) return;
   Isolate* isolate = Isolate::GetCurrent();
   C::HandleScope handle_scope(isolate);
@@ -169,4 +154,13 @@ void InvokeCallback() {
 #endif
 }
 
-}  // namespace heapdump
+inline void Initialize(Handle<Object> binding) {
+  Isolate* const isolate = Isolate::GetCurrent();
+  PlatformInit(isolate);
+  binding->Set(C::String::NewFromUtf8(isolate, "writeSnapshot"),
+               C::FunctionTemplate::New(isolate, WriteSnapshot)->GetFunction());
+}
+
+NODE_MODULE(heapdump, Initialize)
+
+}  // namespace anonymous
