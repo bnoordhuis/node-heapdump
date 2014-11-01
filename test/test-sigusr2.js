@@ -16,7 +16,7 @@ var path = require('path');
 var http = require('http');
 var shelljs = require('shelljs');
 var test = require('tap').test;
-require(path.join(__dirname, '/../build/Release/heapdump'));
+var heapdump = require('../');
 
 process.chdir(__dirname);
 

@@ -15,7 +15,7 @@
 {
   'targets': [
     {
-      'target_name': 'heapdump',
+      'target_name': 'addon',
       'sources': [
         'src/compat-inl.h',
         'src/compat.h',

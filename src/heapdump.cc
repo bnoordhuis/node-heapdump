@@ -27,10 +27,12 @@
 namespace {
 
 static const int kMaxPath = 4096;
+static const int kNoForkFlag = 1;
+static const int kNoSignalFlag = 2;
 inline bool WriteSnapshot(v8::Isolate* isolate, const char* filename);
 inline bool WriteSnapshotHelper(v8::Isolate* isolate, const char* filename);
 inline void InvokeCallback(const char* filename);
-inline void PlatformInit(v8::Isolate* isolate);
+inline void PlatformInit(v8::Isolate* isolate, int flags);
 inline void RandomSnapshotFilename(char* buffer, size_t size);
 static ::compat::Persistent<v8::Function> on_complete_callback;
 
@@ -154,13 +156,24 @@ inline void RandomSnapshotFilename(char* buffer, size_t size) {
   snprintf(buffer, size, "heapdump-%lu.%lu.heapsnapshot", sec, usec);
 }
 
+inline C::ReturnType Configure(const C::ArgumentType& args) {
+  C::ReturnableHandleScope handle_scope(args);
+  PlatformInit(args.GetIsolate(), args[0]->IntegerValue());
+  return handle_scope.Return();
+}
+
 inline void Initialize(Local<Object> binding) {
   Isolate* const isolate = Isolate::GetCurrent();
-  PlatformInit(isolate);
+  binding->Set(C::String::NewFromUtf8(isolate, "kNoForkFlag"),
+               C::Integer::New(isolate, kNoForkFlag));
+  binding->Set(C::String::NewFromUtf8(isolate, "kNoSignalFlag"),
+               C::Integer::New(isolate, kNoSignalFlag));
+  binding->Set(C::String::NewFromUtf8(isolate, "configure"),
+               C::FunctionTemplate::New(isolate, Configure)->GetFunction());
   binding->Set(C::String::NewFromUtf8(isolate, "writeSnapshot"),
                C::FunctionTemplate::New(isolate, WriteSnapshot)->GetFunction());
 }
 
-NODE_MODULE(heapdump, Initialize)
+NODE_MODULE(addon, Initialize)
 
 }  // namespace anonymous

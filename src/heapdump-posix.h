@@ -30,6 +30,7 @@ static char snapshot_filename[kMaxPath];
 static uv_signal_t signal_handle;
 static uv_signal_t sigchld_handle;
 static pid_t child_pid = -1;
+static bool nofork;
 
 inline void OnSIGUSR2(uv_signal_t* handle, int signo) {
   assert(handle == &signal_handle);
@@ -41,6 +42,8 @@ inline void OnSIGUSR2(uv_signal_t* handle, int signo) {
 
 inline void OnSIGCHLD(uv_signal_t* handle, int signo) {
   assert(handle == &sigchld_handle);
+  assert(nofork == false);
+
   int status;
   pid_t pid = waitpid(child_pid, &status, WNOHANG);
   if (pid == 0) {
@@ -60,6 +63,11 @@ inline void OnSIGCHLD(uv_signal_t* handle, int signo) {
 }
 
 inline bool WriteSnapshot(v8::Isolate* isolate, const char* filename) {
+  if (nofork == true) {
+    WriteSnapshotHelper(isolate, filename);
+    InvokeCallback(filename);
+    return true;
+  }
   if (uv_is_active(reinterpret_cast<uv_handle_t*>(&sigchld_handle))) {
     return false;  // Already busy writing a snapshot.
   }
@@ -81,15 +89,18 @@ inline bool WriteSnapshot(v8::Isolate* isolate, const char* filename) {
   return true;  // Placate compiler.
 }
 
-inline void PlatformInit(v8::Isolate* isolate) {
-  const char* options = getenv("NODE_HEAPDUMP_OPTIONS");
-  if (options == NULL || strcmp(options, "nosignal") != 0) {
+inline void PlatformInit(v8::Isolate* isolate, int flags) {
+  nofork = (flags & kNoForkFlag);
+  if (nofork == false) {
+    uv_signal_init(uv_default_loop(), &sigchld_handle);
+  }
+  const bool nosignal = (flags & kNoSignalFlag);
+  if (nosignal == false) {
     uv_signal_init(uv_default_loop(), &signal_handle);
     uv_signal_start(&signal_handle, OnSIGUSR2, SIGUSR2);
     uv_unref(reinterpret_cast<uv_handle_t*>(&signal_handle));
     signal_handle.data = isolate;
   }
-  uv_signal_init(uv_default_loop(), &sigchld_handle);
 }
 
 }  // namespace anonymous
