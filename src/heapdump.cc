@@ -26,10 +26,12 @@
 
 namespace {
 
+static const int kMaxPath = 4096;
 inline bool WriteSnapshot(v8::Isolate* isolate, const char* filename);
 inline bool WriteSnapshotHelper(v8::Isolate* isolate, const char* filename);
-inline void InvokeCallback();
+inline void InvokeCallback(const char* filename);
 inline void PlatformInit(v8::Isolate* isolate);
+inline void RandomSnapshotFilename(char* buffer, size_t size);
 static ::compat::Persistent<v8::Function> on_complete_callback;
 
 }  // namespace anonymous
@@ -87,7 +89,6 @@ inline C::ReturnType WriteSnapshot(const C::ArgumentType& args) {
   C::ReturnableHandleScope handle_scope(args);
   Isolate* const isolate = args.GetIsolate();
 
-  bool ok;
   Local<Value> maybe_function = args[0];
   if (1 < args.Length()) {
     maybe_function = args[1];
@@ -98,34 +99,23 @@ inline C::ReturnType WriteSnapshot(const C::ArgumentType& args) {
     on_complete_callback.Reset(isolate, function);
   }
 
+  char filename[kMaxPath];
   if (args[0]->IsString()) {
-    String::Utf8Value filename(args[0]);
-    ok = WriteSnapshot(isolate, *filename);
+    String::Utf8Value filename_string(args[0]);
+    snprintf(filename, sizeof(filename), "%s", *filename_string);
   } else {
-    ok = WriteSnapshot(isolate, NULL);
+    RandomSnapshotFilename(filename, sizeof(filename));
   }
 
   // Throwing on error is too disruptive, just return a boolean indicating
   // success.
-  return handle_scope.Return(ok);
+  const bool success = WriteSnapshot(isolate, filename);
+  return handle_scope.Return(success);
 }
 
 inline bool WriteSnapshotHelper(Isolate* isolate, const char* filename) {
-  char scratch[256];
-  if (filename == NULL) {
-    uint64_t now = uv_hrtime();
-    unsigned long sec = static_cast<unsigned long>(now / 1000000);
-    unsigned long usec = static_cast<unsigned long>(now % 1000000);
-    snprintf(scratch, sizeof(scratch), "heapdump-%lu.%lu.heapsnapshot", sec,
-             usec);
-    filename = scratch;
-  }
-
   FILE* fp = fopen(filename, "w");
-  if (fp == NULL) {
-    return false;
-  }
-
+  if (fp == NULL) return false;
   const HeapSnapshot* const snap = C::HeapProfiler::TakeHeapSnapshot(isolate);
   FileOutputStream stream(fp);
   snap->Serialize(&stream, HeapSnapshot::kJSON);
@@ -139,22 +129,32 @@ inline bool WriteSnapshotHelper(Isolate* isolate, const char* filename) {
   return true;
 }
 
-inline void InvokeCallback() {
+inline void InvokeCallback(const char* filename) {
   if (on_complete_callback.IsEmpty()) return;
   Isolate* isolate = Isolate::GetCurrent();
   C::HandleScope handle_scope(isolate);
   Local<Function> callback = on_complete_callback.ToLocal(isolate);
+  Local<Value> argv[] = {C::Null(isolate),
+                         C::String::NewFromUtf8(isolate, filename)};
+  const int argc = sizeof(argv) / sizeof(*argv);
 #if COMPAT_NODE_VERSION == 10
-  node::MakeCallback(Context::GetCurrent()->Global(), callback, 0, NULL);
+  node::MakeCallback(Context::GetCurrent()->Global(), callback, argc, argv);
 #elif COMPAT_NODE_VERSION == 12
   node::MakeCallback(isolate, isolate->GetCurrentContext()->Global(), callback,
-                     0, NULL);
+                     argc, argv);
 #else
 #error "Unsupported node.js version."
 #endif
 }
 
-inline void Initialize(Handle<Object> binding) {
+inline void RandomSnapshotFilename(char* buffer, size_t size) {
+  const uint64_t now = uv_hrtime();
+  const unsigned long sec = static_cast<unsigned long>(now / 1000000);
+  const unsigned long usec = static_cast<unsigned long>(now % 1000000);
+  snprintf(buffer, size, "heapdump-%lu.%lu.heapsnapshot", sec, usec);
+}
+
+inline void Initialize(Local<Object> binding) {
   Isolate* const isolate = Isolate::GetCurrent();
   PlatformInit(isolate);
   binding->Set(C::String::NewFromUtf8(isolate, "writeSnapshot"),

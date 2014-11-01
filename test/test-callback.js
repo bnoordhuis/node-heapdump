@@ -32,9 +32,11 @@ function testFuncCall(test){
     var heapSnapshotFile = 'heapdump-*.heapsnapshot';
     shelljs.rm('-f', heapSnapshotFile);
 
-    function waitForHeapdump(){
+    function waitForHeapdump(err, filename) {
       var files = shelljs.ls(heapSnapshotFile);
-      test.equals(files.length, 1, 'Heap file should be present');
+      test.equals(err, null);
+      test.equals(files.length, 1);
+      test.equals(filename, files[0]);
       server.close();
       test.end();
     }

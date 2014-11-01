@@ -30,8 +30,8 @@ that writes out a snapshot.  `filename` defaults to
 The function also takes an optional callback function which is called upon
 completion of the heap dump.
 
-    heapdump.writeSnapshot(function() {
-      console.log('dump complete');
+    heapdump.writeSnapshot(function(err, filename) {
+      console.log('dump written to', filename);
     });
 
 On UNIX, it forks off a new process that writes out the snapshot in an

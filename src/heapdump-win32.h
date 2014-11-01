@@ -21,7 +21,7 @@ inline void PlatformInit(v8::Isolate*) {}
 
 inline bool WriteSnapshot(v8::Isolate* isolate, const char* filename) {
   bool result = WriteSnapshotHelper(isolate, filename);
-  InvokeCallback();
+  InvokeCallback(filename);
   return result;
 }
 

@@ -26,6 +26,7 @@
 
 namespace {
 
+static char snapshot_filename[kMaxPath];
 static uv_signal_t signal_handle;
 static uv_signal_t sigchld_handle;
 static pid_t child_pid = -1;
@@ -34,7 +35,8 @@ inline void OnSIGUSR2(uv_signal_t* handle, int signo) {
   assert(handle == &signal_handle);
   v8::Isolate* isolate = reinterpret_cast<v8::Isolate*>(handle->data);
   on_complete_callback.Reset();
-  WriteSnapshot(isolate, NULL);
+  RandomSnapshotFilename(snapshot_filename, sizeof(snapshot_filename));
+  WriteSnapshot(isolate, snapshot_filename);
 }
 
 inline void OnSIGCHLD(uv_signal_t* handle, int signo) {
@@ -45,7 +47,7 @@ inline void OnSIGCHLD(uv_signal_t* handle, int signo) {
     return;
   }
 
-  InvokeCallback();
+  InvokeCallback(snapshot_filename);
 
   // ECHILD is not an error, it means that libuv's internal SIGCHLD handler
   // came before use and consumed the event.  Just ignore it and stop the
@@ -60,6 +62,10 @@ inline void OnSIGCHLD(uv_signal_t* handle, int signo) {
 inline bool WriteSnapshot(v8::Isolate* isolate, const char* filename) {
   if (uv_is_active(reinterpret_cast<uv_handle_t*>(&sigchld_handle))) {
     return false;  // Already busy writing a snapshot.
+  }
+  if (filename != snapshot_filename) {
+    // Save copy for when the child process finishes.
+    snprintf(snapshot_filename, sizeof(snapshot_filename), "%s", filename);
   }
   child_pid = fork();
   if (child_pid == -1) {
