@@ -139,9 +139,9 @@ inline void InvokeCallback(const char* filename) {
   Local<Value> argv[] = {C::Null(isolate),
                          C::String::NewFromUtf8(isolate, filename)};
   const int argc = sizeof(argv) / sizeof(*argv);
-#if COMPAT_NODE_VERSION == 10
+#if defined(COMPAT_NODE_VERSION_10)
   node::MakeCallback(Context::GetCurrent()->Global(), callback, argc, argv);
-#elif COMPAT_NODE_VERSION == 12
+#elif defined(COMPAT_NODE_VERSION_12)
   node::MakeCallback(isolate, isolate->GetCurrentContext()->Global(), callback,
                      argc, argv);
 #else
