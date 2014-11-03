@@ -34,11 +34,16 @@ completion of the heap dump.
       console.log('dump written to', filename);
     });
 
-On UNIX, it forks off a new process that writes out the snapshot in an
-asynchronous fashion.  (That is, the function does not block.)
+The snapshot is written synchronously to disk.  When the JS heap is large,
+it may introduce a noticeable "hitch".
 
-On Windows, however, it returns only after the snapshot is fully written.
-If the heap is large, that may take a while.
+Previously, node-heapdump first forked the process before writing the snapshot,
+making it effectively asynchronous.  However, it broke the comparison view in
+Chrome DevTools and is fundamentally incompatible with node.js v0.12.  If you
+really want the old behavior and know what you are doing, you can enable it
+again by setting `NODE_HEAPDUMP_OPTIONS=fork` in the environment:
+
+    $ env NODE_HEAPDUMP_OPTIONS=fork node script.js
 
 On UNIX platforms, you can force a snapshot by sending the node.js process
 a SIGUSR2 signal:
