@@ -27,8 +27,8 @@
 namespace {
 
 static const int kMaxPath = 4096;
-static const int kNoForkFlag = 1;
-static const int kNoSignalFlag = 2;
+static const int kForkFlag = 1;
+static const int kSignalFlag = 2;
 inline bool WriteSnapshot(v8::Isolate* isolate, const char* filename);
 inline bool WriteSnapshotHelper(v8::Isolate* isolate, const char* filename);
 inline void InvokeCallback(const char* filename);
@@ -164,10 +164,10 @@ inline C::ReturnType Configure(const C::ArgumentType& args) {
 
 inline void Initialize(Local<Object> binding) {
   Isolate* const isolate = Isolate::GetCurrent();
-  binding->Set(C::String::NewFromUtf8(isolate, "kNoForkFlag"),
-               C::Integer::New(isolate, kNoForkFlag));
-  binding->Set(C::String::NewFromUtf8(isolate, "kNoSignalFlag"),
-               C::Integer::New(isolate, kNoSignalFlag));
+  binding->Set(C::String::NewFromUtf8(isolate, "kForkFlag"),
+               C::Integer::New(isolate, kForkFlag));
+  binding->Set(C::String::NewFromUtf8(isolate, "kSignalFlag"),
+               C::Integer::New(isolate, kSignalFlag));
   binding->Set(C::String::NewFromUtf8(isolate, "configure"),
                C::FunctionTemplate::New(isolate, Configure)->GetFunction());
   binding->Set(C::String::NewFromUtf8(isolate, "writeSnapshot"),

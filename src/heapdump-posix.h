@@ -90,11 +90,11 @@ inline bool WriteSnapshot(v8::Isolate* isolate, const char* filename) {
 }
 
 inline void PlatformInit(v8::Isolate* isolate, int flags) {
-  nofork = (flags & kNoForkFlag);
+  nofork = !(flags & kForkFlag);
   if (nofork == false) {
     uv_signal_init(uv_default_loop(), &sigchld_handle);
   }
-  const bool nosignal = (flags & kNoSignalFlag);
+  const bool nosignal = !(flags & kSignalFlag);
   if (nosignal == false) {
     uv_signal_init(uv_default_loop(), &signal_handle);
     uv_signal_start(&signal_handle, OnSIGUSR2, SIGUSR2);
