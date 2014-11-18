@@ -158,7 +158,7 @@ inline void RandomSnapshotFilename(char* buffer, size_t size) {
 
 inline C::ReturnType Configure(const C::ArgumentType& args) {
   C::ReturnableHandleScope handle_scope(args);
-  PlatformInit(args.GetIsolate(), args[0]->IntegerValue());
+  PlatformInit(args.GetIsolate(), args[0]->Int32Value());
   return handle_scope.Return();
 }
 
