@@ -122,12 +122,10 @@ inline bool WriteSnapshotHelper(Isolate* isolate, const char* filename) {
   FileOutputStream stream(fp);
   snap->Serialize(&stream, HeapSnapshot::kJSON);
   fclose(fp);
-// Only necessary on Windows because the snapshot is created inside the
-// main process.  On UNIX platforms, it's created from a fork that exits
-// after writing the snapshot to disk.
-#if defined(_WIN32)
+  // Work around a deficiency in the API.  The HeapSnapshot object is const
+  // but we cannot call HeapProfiler::DeleteAllHeapSnapshots() because that
+  // invalidates _all_ snapshots, including those created by other tools.
   const_cast<HeapSnapshot*>(snap)->Delete();
-#endif
   return true;
 }
 
