@@ -16,6 +16,7 @@
 #define COMPAT_INL_H_  // NOLINT(build/header_guard)
 
 #include "compat.h"
+#include "v8-debug.h"  // v8::BreakForCommand
 
 namespace compat {
 
@@ -32,32 +33,13 @@ namespace I {
 template <typename T>
 inline void Use(const T&) {}
 
-template <typename T>
-class HasGetConstructorMethod {
-#if defined(_MSC_VER) && _MSC_VER < 1800
- public:
-  // VS before 2013 doesn't handle SFINAE.  Because V8 3.29 does not compile
-  // with older VS versions, if the compiler is not at least VS 2013, we know
-  // that we are building against V8 3.28 or older.
-  static const bool value = true;
-#else
-  template <typename U>
-  static int16_t M(int (*)[sizeof(&U::GetConstructor)]);
-  template <typename U>
-  static int32_t M(...);
-
- public:
-  static const bool value = (sizeof(M<T>(0)) == sizeof(int16_t));
-#endif
-};
-
-// V8 doesn't export a version macro that we can #ifdef on so we apply some
-// SFINAE magic to figure out with what V8 version we are dealing.  In truth,
-// Object::GetConstructor() was removed sometime during the 3.28 development
-// cycle but we only have to discern between 3.26 and 3.29 because those are
-// the V8 versions that joyent/node and node-forward/node ship respectively.
-static const bool AT_LEAST_V8_3_29 =
-    (HasGetConstructorMethod<v8::Object>::value == false);
+// V8 doesn't export a version macro that we can #ifdef on so we apply
+// some SFINAE magic to figure out with what V8 version we are dealing.
+// v8::BreakForCommand == 7 going back all the way to 3.0.0 until it
+// was changed in 3.29 because of new microtask and promise debug APIs.
+// We only have to discern between 3.26 and 3.30 because those are the
+// V8 versions that joyent/node and node-forward/node ship respectively.
+static const bool AT_LEAST_V8_3_29 = (v8::BreakForCommand >= 9);
 
 template <bool AT_LEAST_V8_3_29, typename T, typename U>
 void SetAddHistogramSampleFunction(U*, v8::AddHistogramSampleCallback callback,
@@ -176,7 +158,11 @@ ReturnType ReturnableHandleScope::Return(bool value) {
   return Return(Boolean::New(isolate(), value));
 }
 
-ReturnType ReturnableHandleScope::Return(intptr_t value) {
+ReturnType ReturnableHandleScope::Return(int32_t value) {
+  return Return(Integer::New(isolate(), value));
+}
+
+ReturnType ReturnableHandleScope::Return(uint32_t value) {
   return Return(Integer::New(isolate(), value));
 }
 
