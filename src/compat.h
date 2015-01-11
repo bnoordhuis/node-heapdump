@@ -19,21 +19,13 @@
 #include "v8.h"
 #include "v8-profiler.h"
 
-#if NODE_MAJOR_VERSION == 0 && NODE_MINOR_VERSION >= 11
-#define COMPAT_NODE_VERSION_12 1
-#endif
-
-#if NODE_MAJOR_VERSION == 0 && NODE_MINOR_VERSION == 10
-#define COMPAT_NODE_VERSION_10 1
-#endif
-
 namespace compat {
 
-#if defined(COMPAT_NODE_VERSION_10)
+#if !NODE_VERSION_AT_LEAST(0, 11, 0)
 typedef v8::Arguments ArgumentType;
 typedef v8::Handle<v8::Value> ReturnType;
 typedef v8::InvocationCallback FunctionCallback;
-#elif defined(COMPAT_NODE_VERSION_12)
+#else
 typedef v8::FunctionCallbackInfo<v8::Value> ArgumentType;
 typedef void ReturnType;
 typedef v8::FunctionCallback FunctionCallback;

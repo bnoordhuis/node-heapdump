@@ -16,11 +16,10 @@
 #define COMPAT_INL_H_  // NOLINT(build/header_guard)
 
 #include "compat.h"
-#include "v8-debug.h"  // v8::BreakForCommand
 
 namespace compat {
 
-#if defined(COMPAT_NODE_VERSION_10)
+#if !NODE_VERSION_AT_LEAST(0, 11, 0)
 #define COMPAT_ISOLATE
 #define COMPAT_ISOLATE_
 #else
@@ -33,46 +32,12 @@ namespace I {
 template <typename T>
 inline void Use(const T&) {}
 
-// V8 doesn't export a version macro that we can #ifdef on so we apply
-// some SFINAE magic to figure out with what V8 version we are dealing.
-// v8::BreakForCommand == 7 going back all the way to 3.0.0 until it
-// was changed in 3.29 because of new microtask and promise debug APIs.
-// We only have to discern between 3.26 and 3.30 because those are the
-// V8 versions that joyent/node and node-forward/node ship respectively.
-static const bool AT_LEAST_V8_3_29 = (v8::BreakForCommand >= 9);
-
-template <bool AT_LEAST_V8_3_29, typename T, typename U>
-void SetAddHistogramSampleFunction(U*, v8::AddHistogramSampleCallback callback,
-                                   int (*)[AT_LEAST_V8_3_29 == false] = 0) {
-  T::SetAddHistogramSampleFunction(callback);
-}
-
-template <bool AT_LEAST_V8_3_29, typename T, typename U>
-void SetAddHistogramSampleFunction(U* isolate,
-                                   v8::AddHistogramSampleCallback callback,
-                                   int (*)[AT_LEAST_V8_3_29 == true] = 0) {
-  isolate->SetAddHistogramSampleFunction(callback);
-}
-
-template <bool AT_LEAST_V8_3_29, typename T, typename U>
-void SetCreateHistogramFunction(U*, v8::CreateHistogramCallback callback,
-                                int (*)[AT_LEAST_V8_3_29 == false] = 0) {
-  T::SetCreateHistogramFunction(callback);
-}
-
-template <bool AT_LEAST_V8_3_29, typename T, typename U>
-void SetCreateHistogramFunction(U* isolate,
-                                v8::CreateHistogramCallback callback,
-                                int (*)[AT_LEAST_V8_3_29 == true] = 0) {
-  isolate->SetCreateHistogramFunction(callback);
-}
-
 template <typename T>
 inline v8::Local<T> ToLocal(v8::Local<T> handle) {
   return handle;
 }
 
-#if defined(COMPAT_NODE_VERSION_10)
+#if !NODE_VERSION_AT_LEAST(0, 11, 0)
 template <typename T>
 inline v8::Local<T> ToLocal(v8::Handle<T> handle) {
   return v8::Local<T>(*handle);
@@ -130,13 +95,22 @@ v8::Local<v8::Integer> Integer::NewFromUnsigned(v8::Isolate* isolate,
 
 void Isolate::SetAddHistogramSampleFunction(
     v8::Isolate* isolate, v8::AddHistogramSampleCallback callback) {
-  I::SetAddHistogramSampleFunction<I::AT_LEAST_V8_3_29, v8::V8>(isolate,
-                                                                callback);
+#if !NODE_VERSION_AT_LEAST(1, 0, 0)
+  I::Use(isolate);
+  v8::V8::SetAddHistogramSampleFunction(callback);
+#else
+  isolate->SetAddHistogramSampleFunction(callback);
+#endif
 }
 
 void Isolate::SetCreateHistogramFunction(v8::Isolate* isolate,
                                          v8::CreateHistogramCallback callback) {
-  I::SetCreateHistogramFunction<I::AT_LEAST_V8_3_29, v8::V8>(isolate, callback);
+#if !NODE_VERSION_AT_LEAST(1, 0, 0)
+  I::Use(isolate);
+  v8::V8::SetCreateHistogramFunction(callback);
+#else
+  isolate->SetCreateHistogramFunction(callback);
+#endif
 }
 
 v8::Local<v8::Number> Number::New(v8::Isolate* isolate, double value) {
@@ -227,7 +201,7 @@ v8::Isolate* ReturnableHandleScope::isolate() const {
   return args_.GetIsolate();
 }
 
-#if defined(COMPAT_NODE_VERSION_10)
+#if !NODE_VERSION_AT_LEAST(0, 11, 0)
 
 void CpuProfiler::StartCpuProfiling(v8::Isolate* isolate,
                                     v8::Local<v8::String> title) {
@@ -305,7 +279,7 @@ ReturnType ReturnableHandleScope::Return(v8::Local<v8::Value> value) {
   return handle_scope_.Close(value);
 }
 
-#elif defined(COMPAT_NODE_VERSION_12)
+#else
 
 void CpuProfiler::StartCpuProfiling(v8::Isolate* isolate,
                                     v8::Local<v8::String> title) {

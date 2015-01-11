@@ -137,13 +137,11 @@ inline void InvokeCallback(const char* filename) {
   Local<Value> argv[] = {C::Null(isolate),
                          C::String::NewFromUtf8(isolate, filename)};
   const int argc = sizeof(argv) / sizeof(*argv);
-#if defined(COMPAT_NODE_VERSION_10)
+#if !NODE_VERSION_AT_LEAST(0, 11, 0)
   node::MakeCallback(Context::GetCurrent()->Global(), callback, argc, argv);
-#elif defined(COMPAT_NODE_VERSION_12)
+#else
   node::MakeCallback(isolate, isolate->GetCurrentContext()->Global(), callback,
                      argc, argv);
-#else
-#error "Unsupported node.js version."
 #endif
 }
 
