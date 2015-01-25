@@ -95,7 +95,7 @@ v8::Local<v8::Integer> Integer::NewFromUnsigned(v8::Isolate* isolate,
 
 void Isolate::SetAddHistogramSampleFunction(
     v8::Isolate* isolate, v8::AddHistogramSampleCallback callback) {
-#if !NODE_VERSION_AT_LEAST(1, 0, 0)
+#if !NODE_VERSION_AT_LEAST(0, 11, 15)
   I::Use(isolate);
   v8::V8::SetAddHistogramSampleFunction(callback);
 #else
@@ -105,7 +105,7 @@ void Isolate::SetAddHistogramSampleFunction(
 
 void Isolate::SetCreateHistogramFunction(v8::Isolate* isolate,
                                          v8::CreateHistogramCallback callback) {
-#if !NODE_VERSION_AT_LEAST(1, 0, 0)
+#if !NODE_VERSION_AT_LEAST(0, 11, 15)
   I::Use(isolate);
   v8::V8::SetCreateHistogramFunction(callback);
 #else
