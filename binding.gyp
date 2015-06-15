@@ -16,6 +16,7 @@
   'targets': [
     {
       'target_name': 'addon',
+      'win_delay_load_hook': 'false',
       'sources': [
         'src/compat-inl.h',
         'src/compat.h',
