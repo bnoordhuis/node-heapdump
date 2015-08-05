@@ -113,6 +113,17 @@ void Isolate::SetCreateHistogramFunction(v8::Isolate* isolate,
 #endif
 }
 
+void Isolate::SetJitCodeEventHandler(v8::Isolate* isolate,
+                                     v8::JitCodeEventOptions options,
+                                     v8::JitCodeEventHandler handler) {
+#if !NODE_VERSION_AT_LEAST(1, 0, 0)
+  I::Use(isolate);
+  v8::V8::SetJitCodeEventHandler(options, handler);
+#else
+  isolate->SetJitCodeEventHandler(options, handler);
+#endif
+}
+
 v8::Local<v8::Number> Number::New(v8::Isolate* isolate, double value) {
   I::Use(isolate);
   return v8::Number::New(COMPAT_ISOLATE_ value);
@@ -227,10 +238,8 @@ v8::Local<v8::Value> Isolate::ThrowException(v8::Isolate* isolate,
   return I::ToLocal<v8::Value>(v8::ThrowException(exception));
 }
 
-const v8::HeapSnapshot* HeapProfiler::TakeHeapSnapshot(
-    v8::Isolate* isolate, v8::Local<v8::String> title) {
-  if (title.IsEmpty()) title = v8::String::Empty(isolate);
-  return v8::HeapProfiler::TakeSnapshot(title);
+const v8::HeapSnapshot* HeapProfiler::TakeHeapSnapshot(v8::Isolate* isolate) {
+  return v8::HeapProfiler::TakeSnapshot(v8::String::Empty(isolate));
 }
 
 void HeapProfiler::DeleteAllHeapSnapshots(v8::Isolate* isolate) {
@@ -285,13 +294,21 @@ void CpuProfiler::StartCpuProfiling(v8::Isolate* isolate,
                                     v8::Local<v8::String> title) {
   const bool record_samples = true;
   if (title.IsEmpty()) title = v8::String::Empty(isolate);
+#if !NODE_VERSION_AT_LEAST(3, 0, 0)
   return isolate->GetCpuProfiler()->StartCpuProfiling(title, record_samples);
+#else
+  return isolate->GetCpuProfiler()->StartProfiling(title, record_samples);
+#endif
 }
 
 const v8::CpuProfile* CpuProfiler::StopCpuProfiling(
     v8::Isolate* isolate, v8::Local<v8::String> title) {
   if (title.IsEmpty()) title = v8::String::Empty(isolate);
+#if !NODE_VERSION_AT_LEAST(3, 0, 0)
   return isolate->GetCpuProfiler()->StopCpuProfiling(title);
+#else
+  return isolate->GetCpuProfiler()->StopProfiling(title);
+#endif
 }
 
 void Isolate::GetHeapStatistics(v8::Isolate* isolate,
@@ -304,10 +321,13 @@ v8::Local<v8::Value> Isolate::ThrowException(v8::Isolate* isolate,
   return isolate->ThrowException(exception);
 }
 
-const v8::HeapSnapshot* HeapProfiler::TakeHeapSnapshot(
-    v8::Isolate* isolate, v8::Local<v8::String> title) {
-  if (title.IsEmpty()) title = v8::String::Empty(isolate);
+const v8::HeapSnapshot* HeapProfiler::TakeHeapSnapshot(v8::Isolate* isolate) {
+#if !NODE_VERSION_AT_LEAST(3, 0, 0)
+  v8::Local<v8::String> title = v8::String::Empty(isolate);
   return isolate->GetHeapProfiler()->TakeHeapSnapshot(title);
+#else
+  return isolate->GetHeapProfiler()->TakeHeapSnapshot();
+#endif
 }
 
 void HeapProfiler::DeleteAllHeapSnapshots(v8::Isolate* isolate) {
