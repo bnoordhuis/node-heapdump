@@ -69,6 +69,10 @@ at your leisure.
 Note that Chrome will refuse to load the file unless it has the `.heapsnapshot`
 extension.
 
+If you see shallow size is identical to retained size for all the objects,
+make sure to enable "Show advanced heap snapshot properties" check box
+in the DevTools settings panel and restart DevTools.
+
 ### Caveats
 
 On UNIX systems, the rule of thumb for creating a heap snapshot is that it
