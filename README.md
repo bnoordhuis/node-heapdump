@@ -77,3 +77,13 @@ If you end up with empty or truncated snapshot files, check the output of
 `dmesg`; you may have had a run-in with the system's OOM killer or a resource
 limit enforcing policy, like `ulimit -u` (max user processes) or `ulimit -v`
 (max virtual memory size).
+
+
+# Shrinkwrap usage:
+
+1. `npm install shrinkwrap`  // install shrinkwrap
+2. `npm shrinkwrap`   //  generate npm-shrinkwrap.json
+  if there are many 'extraneous error', two ways: one is clone the project in an empty folder, re-do these steps; another one  is uninstall the packages one by one from the top, after every uninstall, re-run `npm shrinkwrap` to check whether it's good  enough to generate npm-shrinkwrap.json. 
+3. in case of changing the version of a package, change the version in package.json, run `npm shrinkwrap delete {package name}` and `grep {package name} npm-shrinkwrap.json` to make sure that package is removed from npm-shrinkwrap.json. run `npm shrinkwrap` to generate new npm-shrinkwrap.json, and push the change.
+4. for installing a new package, after the new package is installed, re-run `npm shrinkwrap`, generate new npm-shrinkwrap.json.
+5. once there is npm-shrinkwrap.json, `npm install` will ignore package.json, use only npm-shrinkwrap.json.
