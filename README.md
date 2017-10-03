@@ -60,7 +60,7 @@ by setting `NODE_HEAPDUMP_OPTIONS=nosignal` in the environment:
 Open [Google Chrome](https://www.google.com/intl/en/chrome/browser/) and
 press F12 to open the developer toolbar.
 
-Go to the `Profiles` tab, right-click in the tab pane and select
+Go to the `Memory` tab, right-click in the tab pane and select
 `Load profile...`.
 
 Select the dump file and click `Open`.  You can now inspect the heap snapshot
