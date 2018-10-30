@@ -13,10 +13,10 @@
 // OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 try {
-  var addon = require('../build/Release/addon');
+  var addon = require('./build/Release/addon');
 } catch (e) {
   if (e.code !== 'MODULE_NOT_FOUND') throw e;
-  var addon = require('../build/Debug/addon');
+  var addon = require('./build/Debug/addon');
 }
 
 var kForkFlag = addon.kForkFlag;
