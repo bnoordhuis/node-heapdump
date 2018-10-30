@@ -14,7 +14,7 @@
 
 #include "node.h"  // Picks up BUILDING_NODE_EXTENSION on Windows, see #30.
 
-#include "compat-inl.h"
+#include "nan.h"
 #include "uv.h"
 #include "v8-profiler.h"
 #include "v8.h"
@@ -34,7 +34,7 @@ inline bool WriteSnapshotHelper(v8::Isolate* isolate, const char* filename);
 inline void InvokeCallback(const char* filename);
 inline void PlatformInit(v8::Isolate* isolate, int flags);
 inline void RandomSnapshotFilename(char* buffer, size_t size);
-static ::compat::Persistent<v8::Function> on_complete_callback;
+static Nan::Callback on_complete_callback;
 
 }  // namespace anonymous
 
@@ -46,24 +46,7 @@ static ::compat::Persistent<v8::Function> on_complete_callback;
 
 namespace {
 
-using v8::Context;
-using v8::Function;
-using v8::FunctionTemplate;
-using v8::Handle;
-using v8::HandleScope;
-using v8::HeapSnapshot;
-using v8::Isolate;
-using v8::Local;
-using v8::Object;
-using v8::OutputStream;
-using v8::Persistent;
-using v8::String;
-using v8::V8;
-using v8::Value;
-
-namespace C = ::compat;
-
-class FileOutputStream : public OutputStream {
+class FileOutputStream : public v8::OutputStream {
  public:
   FileOutputStream(FILE* stream) : stream_(stream) {}
 
@@ -87,23 +70,34 @@ class FileOutputStream : public OutputStream {
   FILE* stream_;
 };
 
-inline C::ReturnType WriteSnapshot(const C::ArgumentType& args) {
-  C::ReturnableHandleScope handle_scope(args);
-  Isolate* const isolate = args.GetIsolate();
+const v8::HeapSnapshot* TakeHeapSnapshot(v8::Isolate* isolate) {
+  (void) &isolate;
+#if NODE_VERSION_AT_LEAST(3, 0, 0)
+  return isolate->GetHeapProfiler()->TakeHeapSnapshot();
+#elif NODE_VERSION_AT_LEAST(0, 11, 0)
+  return isolate->GetHeapProfiler()->TakeHeapSnapshot(Nan::EmptyString());
+#else
+  return v8::HeapProfiler::TakeSnapshot(Nan::EmptyString());
+#endif
+}
 
-  Local<Value> maybe_function = args[0];
-  if (1 < args.Length()) {
-    maybe_function = args[1];
+NAN_METHOD(WriteSnapshot) {
+  v8::Isolate* const isolate = info.GetIsolate();
+
+  v8::Local<v8::Value> maybe_function = info[0];
+  if (1 < info.Length()) {
+    maybe_function = info[1];
   }
 
   if (maybe_function->IsFunction()) {
-    Local<Function> function = maybe_function.As<Function>();
-    on_complete_callback.Reset(isolate, function);
+    v8::Local<v8::Function> function =
+        Nan::To<v8::Function>(maybe_function).ToLocalChecked();
+    on_complete_callback.Reset(function);
   }
 
   char filename[kMaxPath];
-  if (args[0]->IsString()) {
-    String::Utf8Value filename_string(args[0]);
+  if (info[0]->IsString()) {
+    Nan::Utf8String filename_string(info[0]);
     snprintf(filename, sizeof(filename), "%s", *filename_string);
   } else {
     RandomSnapshotFilename(filename, sizeof(filename));
@@ -112,37 +106,30 @@ inline C::ReturnType WriteSnapshot(const C::ArgumentType& args) {
   // Throwing on error is too disruptive, just return a boolean indicating
   // success.
   const bool success = WriteSnapshot(isolate, filename);
-  return handle_scope.Return(success);
+  info.GetReturnValue().Set(success);
 }
 
-inline bool WriteSnapshotHelper(Isolate* isolate, const char* filename) {
+inline bool WriteSnapshotHelper(v8::Isolate* isolate, const char* filename) {
   FILE* fp = fopen(filename, "w");
   if (fp == NULL) return false;
-  const HeapSnapshot* const snap = C::HeapProfiler::TakeHeapSnapshot(isolate);
+  const v8::HeapSnapshot* const snap = TakeHeapSnapshot(isolate);
   FileOutputStream stream(fp);
-  snap->Serialize(&stream, HeapSnapshot::kJSON);
+  snap->Serialize(&stream, v8::HeapSnapshot::kJSON);
   fclose(fp);
   // Work around a deficiency in the API.  The HeapSnapshot object is const
   // but we cannot call HeapProfiler::DeleteAllHeapSnapshots() because that
   // invalidates _all_ snapshots, including those created by other tools.
-  const_cast<HeapSnapshot*>(snap)->Delete();
+  const_cast<v8::HeapSnapshot*>(snap)->Delete();
   return true;
 }
 
 inline void InvokeCallback(const char* filename) {
+  Nan::HandleScope handle_scope;
   if (on_complete_callback.IsEmpty()) return;
-  Isolate* isolate = Isolate::GetCurrent();
-  C::HandleScope handle_scope(isolate);
-  Local<Function> callback = on_complete_callback.ToLocal(isolate);
-  Local<Value> argv[] = {C::Null(isolate),
-                         C::String::NewFromUtf8(isolate, filename)};
+  v8::Local<v8::Value> argv[] = {Nan::Null(),
+                                 Nan::New(filename).ToLocalChecked()};
   const int argc = sizeof(argv) / sizeof(*argv);
-#if !NODE_VERSION_AT_LEAST(0, 11, 0)
-  node::MakeCallback(Context::GetCurrent()->Global(), callback, argc, argv);
-#else
-  node::MakeCallback(isolate, isolate->GetCurrentContext()->Global(), callback,
-                     argc, argv);
-#endif
+  Nan::Call(on_complete_callback, argc, argv);
 }
 
 inline void RandomSnapshotFilename(char* buffer, size_t size) {
@@ -152,22 +139,23 @@ inline void RandomSnapshotFilename(char* buffer, size_t size) {
   snprintf(buffer, size, "heapdump-%lu.%lu.heapsnapshot", sec, usec);
 }
 
-inline C::ReturnType Configure(const C::ArgumentType& args) {
-  C::ReturnableHandleScope handle_scope(args);
-  PlatformInit(args.GetIsolate(), args[0]->Int32Value());
-  return handle_scope.Return();
+NAN_METHOD(Configure) {
+  PlatformInit(info.GetIsolate(), Nan::To<int32_t>(info[0]).FromJust());
 }
 
-inline void Initialize(Local<Object> binding) {
-  Isolate* const isolate = Isolate::GetCurrent();
-  binding->Set(C::String::NewFromUtf8(isolate, "kForkFlag"),
-               C::Integer::New(isolate, kForkFlag));
-  binding->Set(C::String::NewFromUtf8(isolate, "kSignalFlag"),
-               C::Integer::New(isolate, kSignalFlag));
-  binding->Set(C::String::NewFromUtf8(isolate, "configure"),
-               C::FunctionTemplate::New(isolate, Configure)->GetFunction());
-  binding->Set(C::String::NewFromUtf8(isolate, "writeSnapshot"),
-               C::FunctionTemplate::New(isolate, WriteSnapshot)->GetFunction());
+NAN_MODULE_INIT(Initialize) {
+  Nan::Set(target,
+           Nan::New("kForkFlag").ToLocalChecked(),
+           Nan::New(kForkFlag));
+  Nan::Set(target,
+           Nan::New("kSignalFlag").ToLocalChecked(),
+           Nan::New(kSignalFlag));
+  Nan::Set(target,
+           Nan::New("configure").ToLocalChecked(),
+           Nan::New<v8::FunctionTemplate>(Configure)->GetFunction());
+  Nan::Set(target,
+           Nan::New("writeSnapshot").ToLocalChecked(),
+           Nan::New<v8::FunctionTemplate>(WriteSnapshot)->GetFunction());
 }
 
 NODE_MODULE(addon, Initialize)

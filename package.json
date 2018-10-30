@@ -1,6 +1,6 @@
 {
   "name": "heapdump",
-  "version": "0.3.9",
+  "version": "0.3.10",
   "description": "Make a dump of the V8 heap for later inspection.",
   "homepage": "https://github.com/bnoordhuis/node-heapdump",
   "author": {
@@ -18,6 +18,9 @@
   "license": "ISC",
   "scripts": {
     "test": "tap test/test-*"
+  },
+  "dependencies": {
+    "nan": "^2.11.1"
   },
   "devDependencies": {
     "shelljs": "~0.3.0",
