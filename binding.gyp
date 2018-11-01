@@ -17,7 +17,7 @@
     {
       'target_name': 'addon',
       'win_delay_load_hook': 'false',
-      'include_dirs': ['''<!(node -e 'require("nan")')'''],
+      'include_dirs': ['<!(node -e "require(\'nan\')")'],
       'sources': [
         'src/compat-inl.h',
         'src/compat.h',

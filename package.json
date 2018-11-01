@@ -1,6 +1,6 @@
 {
   "name": "heapdump",
-  "version": "0.3.10",
+  "version": "0.3.11",
   "description": "Make a dump of the V8 heap for later inspection.",
   "homepage": "https://github.com/bnoordhuis/node-heapdump",
   "author": {
