@@ -29,7 +29,7 @@ function testFuncCall(test){
     console.log('Listening on http://127.0.0.1:8000/');
     console.log('PID %d', process.pid);
 
-    var heapSnapshotFile = 'heapdump-' + Date.now() + '.heapsnapshot';
+    var heapSnapshotFile = 'heapdump-*.heapsnapshot';
     shelljs.rm('-f', heapSnapshotFile);
 
     function waitForHeapdump(err, filename) {
@@ -41,7 +41,7 @@ function testFuncCall(test){
       test.end();
     }
 
-    heapdump.writeSnapshot(heapSnapshotFile, waitForHeapdump);
+    heapdump.writeSnapshot(waitForHeapdump);
   });
   server.listen(0);
 }
