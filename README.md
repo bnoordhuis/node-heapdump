@@ -64,7 +64,8 @@ Go to the `Memory` tab, right-click in the tab pane and select
 `Load profile...`.
 
 Select the dump file and click `Open`.  You can now inspect the heap snapshot
-at your leisure.
+at your leisure. Some snapshots may take a long time to load, on the order of
+minutes or even hours.
 
 Note that Chrome will refuse to load the file unless it has the `.heapsnapshot`
 extension.
