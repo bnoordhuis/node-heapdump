@@ -27,14 +27,10 @@
 namespace {
 
 static const int kMaxPath = 4096;
-static const int kForkFlag = 1;
 static const int kSignalFlag = 2;
 inline bool WriteSnapshot(v8::Isolate* isolate, const char* filename);
-inline bool WriteSnapshotHelper(v8::Isolate* isolate, const char* filename);
-inline void InvokeCallback(const char* filename);
 inline void PlatformInit(v8::Isolate* isolate, int flags);
 inline void RandomSnapshotFilename(char* buffer, size_t size);
-static Nan::Callback on_complete_callback;
 
 }  // namespace anonymous
 
@@ -84,32 +80,21 @@ const v8::HeapSnapshot* TakeHeapSnapshot(v8::Isolate* isolate) {
 NAN_METHOD(WriteSnapshot) {
   v8::Isolate* const isolate = info.GetIsolate();
 
-  v8::Local<v8::Value> maybe_function = info[0];
-  if (1 < info.Length()) {
-    maybe_function = info[1];
-  }
-
-  if (maybe_function->IsFunction()) {
-    v8::Local<v8::Function> function =
-        Nan::To<v8::Function>(maybe_function).ToLocalChecked();
-    on_complete_callback.Reset(function);
-  }
-
   char filename[kMaxPath];
-  if (info[0]->IsString()) {
-    Nan::Utf8String filename_string(info[0]);
+  v8::Local<v8::Value> filename_v = info[0];
+  if (filename_v->IsString()) {
+    Nan::Utf8String filename_string(filename_v);
     snprintf(filename, sizeof(filename), "%s", *filename_string);
   } else {
     RandomSnapshotFilename(filename, sizeof(filename));
   }
 
-  // Throwing on error is too disruptive, just return a boolean indicating
-  // success.
-  const bool success = WriteSnapshot(isolate, filename);
-  info.GetReturnValue().Set(success);
+  if (!WriteSnapshot(isolate, filename)) return;  // Write error.
+  if (!filename_v->IsString()) filename_v = Nan::New(filename).ToLocalChecked();
+  info.GetReturnValue().Set(filename_v);
 }
 
-inline bool WriteSnapshotHelper(v8::Isolate* isolate, const char* filename) {
+inline bool WriteSnapshot(v8::Isolate* isolate, const char* filename) {
   FILE* fp = fopen(filename, "w");
   if (fp == NULL) return false;
   const v8::HeapSnapshot* const snap = TakeHeapSnapshot(isolate);
@@ -121,15 +106,6 @@ inline bool WriteSnapshotHelper(v8::Isolate* isolate, const char* filename) {
   // invalidates _all_ snapshots, including those created by other tools.
   const_cast<v8::HeapSnapshot*>(snap)->Delete();
   return true;
-}
-
-inline void InvokeCallback(const char* filename) {
-  Nan::HandleScope handle_scope;
-  if (on_complete_callback.IsEmpty()) return;
-  v8::Local<v8::Value> argv[] = {Nan::Null(),
-                                 Nan::New(filename).ToLocalChecked()};
-  const int argc = sizeof(argv) / sizeof(*argv);
-  Nan::Call(on_complete_callback, argc, argv);
 }
 
 inline void RandomSnapshotFilename(char* buffer, size_t size) {
@@ -144,9 +120,6 @@ NAN_METHOD(Configure) {
 }
 
 NAN_MODULE_INIT(Initialize) {
-  Nan::Set(target,
-           Nan::New("kForkFlag").ToLocalChecked(),
-           Nan::New(kForkFlag));
   Nan::Set(target,
            Nan::New("kSignalFlag").ToLocalChecked(),
            Nan::New(kSignalFlag));

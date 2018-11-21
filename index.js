@@ -19,7 +19,6 @@ try {
   var addon = require('./build/Debug/addon');
 }
 
-var kForkFlag = addon.kForkFlag;
 var kSignalFlag = addon.kSignalFlag;
 
 var flags = kSignalFlag;
@@ -27,14 +26,20 @@ var options = (process.env.NODE_HEAPDUMP_OPTIONS || '').split(/\s*,\s*/);
 for (var i = 0, n = options.length; i < n; i += 1) {
   var option = options[i];
   if (option === '') continue;
-  else if (option === 'fork') flags |= kForkFlag;
   else if (option === 'signal') flags |= kSignalFlag;
-  else if (option === 'nofork') flags &= ~kForkFlag;
   else if (option === 'nosignal') flags &= ~kSignalFlag;
   else console.error('node-heapdump: unrecognized option:', option);
 }
 addon.configure(flags);
 
-exports.writeSnapshot = function() {
-  return addon.writeSnapshot.apply(null, arguments);
+exports.writeSnapshot = function(filename, cb) {
+  if (typeof filename === 'function') cb = filename, filename = undefined;
+  filename = addon.writeSnapshot(filename);
+  var success = !!filename;
+  // Make the callback. Yes, this is synchronous; it wasn't back when heapdump
+  // forked before writing the snapshot, but it is now. index.js can postpone
+  // the callback with process.nextTick() or setImmediate() if synchronicity
+  // becomes an issue. Or just remove it, it's pretty pointless now.
+  if (cb) cb(null, filename);
+  return success;
 };

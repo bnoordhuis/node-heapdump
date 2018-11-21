@@ -19,12 +19,6 @@ namespace {
 
 inline void PlatformInit(v8::Isolate*, int) {}
 
-inline bool WriteSnapshot(v8::Isolate* isolate, const char* filename) {
-  bool result = WriteSnapshotHelper(isolate, filename);
-  InvokeCallback(filename);
-  return result;
-}
-
 // Emulate snprintf() on windows, _snprintf() doesn't zero-terminate the buffer
 // on overflow.
 inline int snprintf(char* buf, size_t len, const char* fmt, ...) {
