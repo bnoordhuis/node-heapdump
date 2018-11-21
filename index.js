@@ -40,6 +40,9 @@ exports.writeSnapshot = function(filename, cb) {
   // forked before writing the snapshot, but it is now. index.js can postpone
   // the callback with process.nextTick() or setImmediate() if synchronicity
   // becomes an issue. Or just remove it, it's pretty pointless now.
-  if (cb) cb(null, filename);
+  if (cb) {
+    if (success) cb(null, filename);
+    else cb(new Error('heapdump write error'));
+  }
   return success;
 };
