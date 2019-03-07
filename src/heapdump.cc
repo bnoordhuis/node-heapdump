@@ -112,7 +112,18 @@ inline void RandomSnapshotFilename(char* buffer, size_t size) {
   const uint64_t now = uv_hrtime();
   const unsigned long sec = static_cast<unsigned long>(now / 1000000);
   const unsigned long usec = static_cast<unsigned long>(now % 1000000);
-  snprintf(buffer, size, "heapdump-%lu.%lu.heapsnapshot", sec, usec);
+
+  const char* env_heapdump_folder = getenv("NODE_HEAPDUMP_FOLDER");
+  std::string heapdump_folder_name = "";
+
+  if ( NULL != env_heapdump_folder ) {
+    heapdump_folder_name = env_heapdump_folder;
+  }
+
+  size += heapdump_folder_name.size();
+
+  snprintf(buffer, size, "%sheapdump-%lu.%lu.heapsnapshot", heapdump_folder_name.c_str(), sec, usec);
+
 }
 
 NAN_METHOD(Configure) {

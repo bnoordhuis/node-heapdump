@@ -31,7 +31,12 @@ function testSigUsr2(test){
     console.log('Listening on http://127.0.0.1:8000/');
     console.log('now sending SIGUSR2 to %d', process.pid);
 
-    var heapSnapshotFile = 'heapdump-*.heapsnapshot';
+    var heapdumpFolder = "heapdump/";
+
+    shelljs.mkdir(heapdumpFolder);
+    process.env.NODE_HEAPDUMP_FOLDER = heapdumpFolder;
+
+    var heapSnapshotFile = heapdumpFolder + 'heapdump-*.heapsnapshot';
     shelljs.rm('-f', heapSnapshotFile);
 
     var killCmd = shelljs.which('kill');
@@ -42,8 +47,13 @@ function testSigUsr2(test){
       var files = shelljs.ls(heapSnapshotFile);
       test.equals(files.length, 1, 'Heap file should be present');
       server.close();
+
+      shelljs.rm("-f", heapSnapshotFile);
+      shelljs.rm("-r", heapdumpFolder);
+
       test.end();
     }
+
 
     setTimeout(waitForHeapdump, 500);
   });
