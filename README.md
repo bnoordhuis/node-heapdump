@@ -23,8 +23,9 @@ Load the add-on in your application:
 
 The module exports a single `writeSnapshot([filename], [callback])` function
 that writes out a snapshot.  `filename` defaults to
-`heapdump-<sec>.<usec>.heapsnapshot` when omitted. You can specify `NODE_HEAPDUMP_FOLDER` env variables, 
-in case if you want to save snapshots in different folder than applications working directory.
+`heapdump-<sec>.<usec>.heapsnapshot` when omitted. You can specify `NODE_HEAPDUMP_FOLDER` env variables 
+(`NODE_HEAPDUMP_FOLDER="/var/heapdumps/"`, trailing slash _must_ be presenet), in case if you want to 
+save snapshots in different folder than applications working directory.
 
     heapdump.writeSnapshot('/var/local/' + Date.now() + '.heapsnapshot');
 
