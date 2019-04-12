@@ -32,23 +32,25 @@ function testSigUsr2(test){
     console.log('now sending SIGUSR2 to %d', process.pid);
 
     var heapdumpFolder = "heapdump/";
+    var heapsnapshotFile = "heapdump-{sec}-{usec}.heapsnapshot";
 
     shelljs.mkdir(heapdumpFolder);
-    process.env.NODE_HEAPDUMP_FOLDER = heapdumpFolder;
 
-    var heapSnapshotFile = heapdumpFolder + 'heapdump-*.heapsnapshot';
-    shelljs.rm('-f', heapSnapshotFile);
+    var heapSnapshotFileWildcard = heapdumpFolder + 'heapdump-*.heapsnapshot';
+    process.env.NODE_HEAPDUMP_FILENAME = heapdumpFolder + heapsnapshotFile;
+
+    shelljs.rm('-f', heapSnapshotFileWildcard);
 
     var killCmd = shelljs.which('kill');
     var cmd = [killCmd, '-usr2', process.pid].join(' ');
     shelljs.exec(cmd);
 
     function waitForHeapdump(){
-      var files = shelljs.ls(heapSnapshotFile);
+      var files = shelljs.ls(heapSnapshotFileWildcard);
       test.equals(files.length, 1, 'Heap file should be present');
       server.close();
 
-      shelljs.rm("-f", heapSnapshotFile);
+      shelljs.rm("-f", heapSnapshotFileWildcard);
       shelljs.rm("-r", heapdumpFolder);
 
       test.end();

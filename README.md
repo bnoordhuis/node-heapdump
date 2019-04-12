@@ -22,10 +22,10 @@ Load the add-on in your application:
     var heapdump = require('heapdump');
 
 The module exports a single `writeSnapshot([filename], [callback])` function
-that writes out a snapshot.  `filename` defaults to
-`heapdump-<sec>.<usec>.heapsnapshot` when omitted. You can specify `NODE_HEAPDUMP_FOLDER` env variables 
-(`NODE_HEAPDUMP_FOLDER="/var/heapdumps/"`, trailing slash _must_ be presenet), in case if you want to 
-save snapshots in different folder than applications working directory.
+that writes out a snapshot.  `filename` defaults to `heapdump-<sec>.<usec>.heapsnapshot` when omitted. 
+You can specify `NODE_HEAPDUMP_FILENAME` env variables, which will be used as template for 
+filename (include folder) - `NODE_HEAPDUMP_FILENAME="/var/heapdumps/heapdump-{sec}.{usec}.snapshot"`, 
+in case if you want to save snapshots in different folder than application's working directory.
 
     heapdump.writeSnapshot('/var/local/' + Date.now() + '.heapsnapshot');
 

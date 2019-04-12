@@ -108,22 +108,35 @@ inline bool WriteSnapshot(v8::Isolate* isolate, const char* filename) {
   return true;
 }
 
+
+bool replace(std::string& str, const std::string& from, const std::string& to) {
+  size_t start_pos = str.find(from);
+  if(start_pos == std::string::npos)
+    return false;
+  str.replace(start_pos, from.length(), to);
+  return true;
+}
+
 inline void RandomSnapshotFilename(char* buffer, size_t size) {
   const uint64_t now = uv_hrtime();
   const unsigned long sec = static_cast<unsigned long>(now / 1000000);
   const unsigned long usec = static_cast<unsigned long>(now % 1000000);
 
-  const char* env_heapdump_folder = getenv("NODE_HEAPDUMP_FOLDER");
-  std::string heapdump_folder_name = "";
+  // string re-presentation of sec and usec
+  std::string sec_s = std::to_string(sec);
+  std::string usec_s = std::to_string(usec);
 
-  if ( NULL != env_heapdump_folder ) {
-    heapdump_folder_name = env_heapdump_folder;
-  }
+  const char* default_heapdump_filename = "heapdump-{sec}.{usec}.heapsnapshot";
+  const char* env_heapdump_filename = getenv("NODE_HEAPDUMP_FILENAME");
 
-  size += heapdump_folder_name.size();
+  std::string heapdump_filename = NULL != env_heapdump_filename ? std::string(env_heapdump_filename) : std::string(default_heapdump_filename);
 
-  snprintf(buffer, size, "%sheapdump-%lu.%lu.heapsnapshot", heapdump_folder_name.c_str(), sec, usec);
+  replace(heapdump_filename, "{sec}", sec_s);
+  replace(heapdump_filename, "{usec}", usec_s);
 
+  size = heapdump_filename.size() + 1;
+
+  snprintf(buffer, size, "%s", heapdump_filename.c_str());
 }
 
 NAN_METHOD(Configure) {
