@@ -123,12 +123,8 @@ NAN_MODULE_INIT(Initialize) {
   Nan::Set(target,
            Nan::New("kSignalFlag").ToLocalChecked(),
            Nan::New(kSignalFlag));
-  Nan::Set(target,
-           Nan::New("configure").ToLocalChecked(),
-           Nan::New<v8::FunctionTemplate>(Configure)->GetFunction());
-  Nan::Set(target,
-           Nan::New("writeSnapshot").ToLocalChecked(),
-           Nan::New<v8::FunctionTemplate>(WriteSnapshot)->GetFunction());
+  Nan::SetMethod(target, "configure", Configure);
+  Nan::SetMethod(target, "writeSnapshot", WriteSnapshot);
 }
 
 NODE_MODULE(addon, Initialize)
