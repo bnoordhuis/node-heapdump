@@ -66,6 +66,12 @@ extension.
 
 On UNIX systems, the rule of thumb for creating a heap snapshot is that it
 requires memory twice the size of the heap at the time of the snapshot.
+
+Compare the size of the snapshot vs. `process.memoryUsage().heapTotal`
+at the time of the snapshot to get a hint of a truncated snapshot.
+They should be roughly the same. A slightly smaller snapshot is normal,
+but a snapshot e.g. half the size is not.
+
 If you end up with empty or truncated snapshot files, check the output of
 `dmesg`; you may have had a run-in with the system's OOM killer or a resource
 limit enforcing policy, like `ulimit -u` (max user processes) or `ulimit -v`
