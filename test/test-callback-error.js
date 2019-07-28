@@ -19,7 +19,7 @@ var heapdump = require('../');
 
 var ncalls = 0;
 heapdump.writeSnapshot('/does/not/exist', function(err) {
-  assert(/heapdump write error/.test(err.message));
+  assert(/heapdump write error ENOENT/.test(err.message));
   ncalls++;
 });
 assert(ncalls === 1);

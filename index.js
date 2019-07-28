@@ -32,17 +32,26 @@ for (var i = 0, n = options.length; i < n; i += 1) {
 }
 addon.configure(flags);
 
+var os = require('os');
+var errno = [];
+if (os.constants && os.constants.errno) {
+  Object.keys(os.constants.errno).forEach(function(key) {
+    var value = os.constants.errno[key];
+    errno[value] = key;
+  });
+}
+
 exports.writeSnapshot = function(filename, cb) {
   if (typeof filename === 'function') cb = filename, filename = undefined;
-  filename = addon.writeSnapshot(filename);
-  var success = !!filename;
+  var result = addon.writeSnapshot(filename);
+  var success = (typeof result === 'string');  // Filename or errno.
   // Make the callback. Yes, this is synchronous; it wasn't back when heapdump
   // forked before writing the snapshot, but it is now. index.js can postpone
   // the callback with process.nextTick() or setImmediate() if synchronicity
   // becomes an issue. Or just remove it, it's pretty pointless now.
   if (cb) {
-    if (success) cb(null, filename);
-    else cb(new Error('heapdump write error'));
+    if (success) cb(null, result);
+    else cb(new Error('heapdump write error ' + (errno[result] || result)));
   }
   return success;
 };

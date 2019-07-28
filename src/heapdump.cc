@@ -19,6 +19,7 @@
 #include "v8-profiler.h"
 #include "v8.h"
 
+#include <errno.h>
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdlib.h>
@@ -28,7 +29,7 @@ namespace {
 
 static const int kMaxPath = 4096;
 static const int kSignalFlag = 2;
-inline bool WriteSnapshot(v8::Isolate* isolate, const char* filename);
+inline int WriteSnapshot(v8::Isolate* isolate, const char* filename);
 inline void PlatformInit(v8::Isolate* isolate, int flags);
 inline void RandomSnapshotFilename(char* buffer, size_t size);
 
@@ -89,23 +90,28 @@ NAN_METHOD(WriteSnapshot) {
     RandomSnapshotFilename(filename, sizeof(filename));
   }
 
-  if (!WriteSnapshot(isolate, filename)) return;  // Write error.
+  if (const int err = WriteSnapshot(isolate, filename)) {
+    info.GetReturnValue().Set(err);
+    return;  // Write error.
+  }
+
   if (!filename_v->IsString()) filename_v = Nan::New(filename).ToLocalChecked();
   info.GetReturnValue().Set(filename_v);
 }
 
-inline bool WriteSnapshot(v8::Isolate* isolate, const char* filename) {
+inline int WriteSnapshot(v8::Isolate* isolate, const char* filename) {
   FILE* fp = fopen(filename, "w");
-  if (fp == NULL) return false;
+  if (fp == NULL) return errno;
   const v8::HeapSnapshot* const snap = TakeHeapSnapshot(isolate);
   FileOutputStream stream(fp);
   snap->Serialize(&stream, v8::HeapSnapshot::kJSON);
-  fclose(fp);
+  int err = 0;
+  if (fclose(fp)) err = errno;
   // Work around a deficiency in the API.  The HeapSnapshot object is const
   // but we cannot call HeapProfiler::DeleteAllHeapSnapshots() because that
   // invalidates _all_ snapshots, including those created by other tools.
   const_cast<v8::HeapSnapshot*>(snap)->Delete();
-  return true;
+  return err;
 }
 
 inline void RandomSnapshotFilename(char* buffer, size_t size) {
