@@ -45,7 +45,7 @@ namespace {
 
 class FileOutputStream : public v8::OutputStream {
  public:
-  FileOutputStream(FILE* stream) : stream_(stream) {}
+  explicit FileOutputStream(FILE* stream) : stream_(stream) {}
 
   virtual int GetChunkSize() {
     return 65536;  // big chunks == faster
