@@ -14,6 +14,8 @@ Or, if you are running node.js v0.6 or v0.8:
 ### Build
 
     node-gyp configure build
+    
+You need to have `g++` ane `make` installed to build it.
 
 ### Usage
 
