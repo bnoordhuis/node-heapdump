@@ -21,10 +21,10 @@
   },
   "dependencies": {
     "nan": "^2.13.2",
-    "prebuild-install": "^5.3.3"
+    "prebuild-install": "^6.1.0"
   },
   "devDependencies": {
-    "prebuild": "^9.1.1",
+    "prebuild": "^10.0.0",
     "shelljs": "~0.3.0",
     "tap": "~0.4.12"
   }

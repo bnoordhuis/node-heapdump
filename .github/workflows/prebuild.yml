@@ -13,10 +13,10 @@ jobs:
     timeout-minutes: 30
     steps:
       - run: sudo apt-get install g++-multilib
-      - uses: actions/setup-node@v1
+      - uses: actions/setup-node@v2
         with:
-          node-version: 12.x
-      - uses: actions/checkout@v1
+          node-version: '14'
+      - uses: actions/checkout@v2
       - run: npm i
       - run: npx prebuild -t 10.0.0 -t 11.0.0 -t 12.0.0 -t 13.0.0 -t 14.0.0 #-u ${{ secrets.GITHUB_TOKEN }}
       - run: npx prebuild -t 10.0.0 -t 11.0.0 -t 12.0.0 -t 13.0.0 -t 14.0.0 -a ia32 #-u ${{ secrets.GITHUB_TOKEN }}
@@ -28,10 +28,10 @@ jobs:
     runs-on: macos-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/setup-node@v1
+      - uses: actions/setup-node@v2
         with:
-          node-version: 12.x
-      - uses: actions/checkout@v1
+          node-version: '14'
+      - uses: actions/checkout@v2
       - run: npm i
       - run: npx prebuild -t 10.0.0 -t 11.0.0 -t 12.0.0 -t 13.0.0 -t 14.0.0 #-u ${{ secrets.GITHUB_TOKEN }}
       - run: npx prebuild -t 7.0.0 -t 8.0.0 -t 9.0.0 -t 10.0.0 -t 11.0.0 -t 12.0.0 -r electron #-u ${{ secrets.GITHUB_TOKEN }}
@@ -41,10 +41,10 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/setup-node@v1
+      - uses: actions/setup-node@v2
         with:
-          node-version: 12.x
-      - uses: actions/checkout@v1
+          node-version: '14'
+      - uses: actions/checkout@v2
       - run: npm i
       - run: cd node_modules/prebuild ; npm i node-gyp@5
       - run: npx prebuild -t 10.0.0 -t 11.0.0 -t 12.0.0 -t 13.0.0 -t 14.0.0 #-u ${{ secrets.GITHUB_TOKEN }} --verbose
