@@ -20,9 +20,11 @@
     "test": "tap test/test-*"
   },
   "dependencies": {
-    "nan": "^2.13.2"
+    "nan": "^2.13.2",
+    "prebuild-install": "^5.3.3"
   },
   "devDependencies": {
+    "prebuild": "^9.1.1",
     "shelljs": "~0.3.0",
     "tap": "~0.4.12"
   }

@@ -1,5 +1,6 @@
 /.lock-wscript
 /build/
 /node_modules/
+prebuilds
 heapdump-*.heapsnapshot
 heapdump-*.log
