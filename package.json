@@ -17,6 +17,7 @@
   },
   "license": "ISC",
   "scripts": {
+    "install": "prebuild-install || node-gyp rebuild",
     "test": "tap test/test-*"
   },
   "dependencies": {
