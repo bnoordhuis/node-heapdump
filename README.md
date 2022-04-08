@@ -43,6 +43,16 @@ by setting `NODE_HEAPDUMP_OPTIONS=nosignal` in the environment:
 
     $ env NODE_HEAPDUMP_OPTIONS=nosignal node script.js
 
+Catch the SIGUSR2 signal to write the snapshot to a custom location:
+
+```js
+if (!/nosignal/.test(process.env.NODE_HEAPDUMP_OPTIONS)) {
+  process.on("SIGUSR2", function() {
+    heapdump.writeSnapshot('/var/local/' + Date.now() + '.heapsnapshot');
+  });
+}
+```
+
 ### Inspecting the snapshot
 
 Open [Google Chrome](https://www.google.com/intl/en/chrome/browser/) and
