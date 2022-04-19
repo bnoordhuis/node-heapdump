@@ -10,6 +10,8 @@ Make a dump of the V8 heap for later inspection.
 ### Build
 
     node-gyp configure build
+    
+You need to have `g++` ane `make` installed to build it.
 
 ### Usage
 
